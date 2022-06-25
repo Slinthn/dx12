@@ -8,6 +8,6 @@ cls
 
 pushd ..\bin
 
-cl -nologo -Wall -Z7 ..\src\win64_app.c /link KERNEL32.LIB USER32.LIB D3D12.LIB DXGUID.LIB DXGI.LIB /ENTRY:MainEntry /SUBSYSTEM:WINDOWS
+cl -nologo -Wall -Z7 -wd5045 -DSLINAPP_DEBUG=1 ..\src\win64_app.c /link KERNEL32.LIB USER32.LIB D3D12.LIB DXGUID.LIB DXGI.LIB /ENTRY:MainEntry /SUBSYSTEM:WINDOWS
 
 popd
