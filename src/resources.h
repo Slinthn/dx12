@@ -1,0 +1,5 @@
+#define VERTEXSHADER 0x100
+#define PIXELSHADER 0x101
+
+#define DEFAULT_VERTEX 1
+#define DEFAULT_PIXEL 1
