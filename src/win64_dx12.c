@@ -10,11 +10,33 @@ void DXWaitForFence(DX12STATE *state) {
 #define WINDOW_WIDTH 1920
 #define WINDOW_HEIGHT 1080
 
+D3D12_CPU_DESCRIPTOR_HANDLE DXGetCPUDescriptorHandleForHeapStart(ID3D12DescriptorHeap *heap) {
+#pragma warning(push)
+#pragma warning(disable : 4020)
+    D3D12_CPU_DESCRIPTOR_HANDLE cpudescriptor;
+    heap->lpVtbl->GetCPUDescriptorHandleForHeapStart(heap, &cpudescriptor);
+#pragma warning(pop)
+    return cpudescriptor;
+}
+
+D3D12_GPU_DESCRIPTOR_HANDLE DXGetGPUDescriptorHandleForHeapStart(ID3D12DescriptorHeap *heap) {
+#pragma warning(push)
+#pragma warning(disable : 4020)
+    D3D12_GPU_DESCRIPTOR_HANDLE gpudescriptor;
+    heap->lpVtbl->GetGPUDescriptorHandleForHeapStart(heap, &gpudescriptor);
+#pragma warning(pop)
+    return gpudescriptor;
+}
+
 void DXPrepareFrame(DX12STATE *state) {
   unsigned int frame = state->swapchain->lpVtbl->GetCurrentBackBufferIndex(state->swapchain);
 
   state->allocator->lpVtbl->Reset(state->allocator);
   state->list->lpVtbl->Reset(state->list, state->allocator, state->pipeline);
+
+  state->list->lpVtbl->SetGraphicsRootSignature(state->list, state->rootsignature);
+  state->list->lpVtbl->SetDescriptorHeaps(state->list, 1, &state->cbvheap);
+  state->list->lpVtbl->SetGraphicsRootDescriptorTable(state->list, 0, DXGetGPUDescriptorHandleForHeapStart(state->cbvheap));
 
   D3D12_VIEWPORT viewport = {0, 0, WINDOW_WIDTH, WINDOW_HEIGHT};
   state->list->lpVtbl->RSSetViewports(state->list, 1, &viewport);
@@ -28,17 +50,11 @@ void DXPrepareFrame(DX12STATE *state) {
   rb.Transition.StateAfter = D3D12_RESOURCE_STATE_RENDER_TARGET;
   state->list->lpVtbl->ResourceBarrier(state->list, 1, &rb);
 
-#pragma warning(push)
-#pragma warning(disable : 4020)
-    D3D12_CPU_DESCRIPTOR_HANDLE cpudescriptor;
-    state->heap->lpVtbl->GetCPUDescriptorHandleForHeapStart(state->heap, &cpudescriptor);
-#pragma warning(pop)
+  D3D12_CPU_DESCRIPTOR_HANDLE cpudescriptor = DXGetCPUDescriptorHandleForHeapStart(state->rtvheap);
+  cpudescriptor.ptr += frame * state->device->lpVtbl->GetDescriptorHandleIncrementSize(state->device, D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
+  state->list->lpVtbl->OMSetRenderTargets(state->list, 1, &cpudescriptor, 0, 0);
 
-    cpudescriptor.ptr += frame * state->device->lpVtbl->GetDescriptorHandleIncrementSize(state->device, D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
-    state->list->lpVtbl->OMSetRenderTargets(state->list, 1, &cpudescriptor, 0, 0);
-    state->list->lpVtbl->SetGraphicsRootSignature(state->list, state->rootsignature);
-
-    state->list->lpVtbl->ClearRenderTargetView(state->list, cpudescriptor, (float[4]) {1.0f, 1.0f, 1.0f, 1.0f}, 0, 0);
+  state->list->lpVtbl->ClearRenderTargetView(state->list, cpudescriptor, (float[4]) {1.0f, 1.0f, 1.0f, 1.0f}, 0, 0);
 }
 
 void DXFlushFrame(DX12STATE *state) {
@@ -125,15 +141,10 @@ DX12STATE DXInit(HWND window) {
   D3D12_DESCRIPTOR_HEAP_DESC dhd = {0};
   dhd.Type = D3D12_DESCRIPTOR_HEAP_TYPE_RTV;
   dhd.NumDescriptors = 2;
-  ID3D12DescriptorHeap *heap;
-  device->lpVtbl->CreateDescriptorHeap(device, &dhd, &IID_ID3D12DescriptorHeap, &heap);
+  ID3D12DescriptorHeap *rtvheap;
+  device->lpVtbl->CreateDescriptorHeap(device, &dhd, &IID_ID3D12DescriptorHeap, &rtvheap);
 
-#pragma warning(push) 
-#pragma warning(disable : 4020) 
-  D3D12_CPU_DESCRIPTOR_HANDLE cpudescriptor;
-  heap->lpVtbl->GetCPUDescriptorHandleForHeapStart(heap, &cpudescriptor);
-#pragma warning(pop)
-
+  D3D12_CPU_DESCRIPTOR_HANDLE cpudescriptor = DXGetCPUDescriptorHandleForHeapStart(rtvheap);
   unsigned int rtvDescriptorSize = device->lpVtbl->GetDescriptorHandleIncrementSize(device, D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
 
   ID3D12Resource *rendertargets[2];
@@ -144,9 +155,26 @@ DX12STATE DXInit(HWND window) {
   }
 
   // Setup resources
+  D3D12_DESCRIPTOR_RANGE1 dr = {0};
+  dr.RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_CBV;
+  dr.NumDescriptors = 1;
+  dr.BaseShaderRegister = 0;
+  dr.RegisterSpace = 0;
+  dr.Flags = D3D12_DESCRIPTOR_RANGE_FLAG_DATA_STATIC;
+  dr.OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;
+
+  D3D12_ROOT_PARAMETER1 rootparameter = {0};
+  rootparameter.ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
+  rootparameter.DescriptorTable.NumDescriptorRanges = 1;
+  rootparameter.DescriptorTable.pDescriptorRanges = &dr;
+  rootparameter.ShaderVisibility = D3D12_SHADER_VISIBILITY_ALL;//D3D12_SHADER_VISIBILITY_VERTEX;
+
   D3D12_VERSIONED_ROOT_SIGNATURE_DESC vrsd = {0};
-  vrsd.Version = D3D_ROOT_SIGNATURE_VERSION_1;
-  vrsd.Desc_1_0.Flags = D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT;
+  vrsd.Version = D3D_ROOT_SIGNATURE_VERSION_1_1;
+  vrsd.Desc_1_1.Flags = D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT;// | D3D12_ROOT_SIGNATURE_FLAG_DENY_HULL_SHADER_ROOT_ACCESS | D3D12_ROOT_SIGNATURE_FLAG_DENY_DOMAIN_SHADER_ROOT_ACCESS | D3D12_ROOT_SIGNATURE_FLAG_DENY_GEOMETRY_SHADER_ROOT_ACCESS | D3D12_ROOT_SIGNATURE_FLAG_DENY_PIXEL_SHADER_ROOT_ACCESS;
+  vrsd.Desc_1_1.NumParameters = 1;
+  vrsd.Desc_1_1.pParameters = &rootparameter;
+
   ID3DBlob *signature;
   D3D12SerializeVersionedRootSignature(&vrsd, &signature, 0);
   
@@ -197,6 +225,54 @@ DX12STATE DXInit(HWND window) {
   ID3D12PipelineState *pipeline;
   device->lpVtbl->CreateGraphicsPipelineState(device, &gpsd, &IID_ID3D12PipelineState, &pipeline);
 
+  
+  dhd = (D3D12_DESCRIPTOR_HEAP_DESC){0};
+  dhd.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
+  dhd.NumDescriptors = 1;
+  dhd.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
+  ID3D12DescriptorHeap *cbvheap;
+  device->lpVtbl->CreateDescriptorHeap(device, &dhd, &IID_ID3D12DescriptorHeap, &cbvheap);
+
+// TODO move
+#pragma pack(push, 1)
+typedef struct {
+  MATRIX perspective;
+  MATRIX nothings[3];
+} CB0;
+#pragma pack(pop)
+  
+  D3D12_HEAP_PROPERTIES hp = {0};
+  hp.Type = D3D12_HEAP_TYPE_UPLOAD;
+  hp.CreationNodeMask = 1;
+  hp.VisibleNodeMask = 1;
+
+  D3D12_RESOURCE_DESC rc = {0};
+  rc.Dimension = D3D12_RESOURCE_DIMENSION_BUFFER;
+  rc.Width = sizeof(CB0);
+  rc.Height = 1;
+  rc.DepthOrArraySize = 1;
+  rc.MipLevels = 1;
+  rc.SampleDesc.Count = 1;
+  rc.Layout = D3D12_TEXTURE_LAYOUT_ROW_MAJOR;
+
+  ID3D12Resource *cbresource;
+  device->lpVtbl->CreateCommittedResource(device, &hp, 0, &rc, D3D12_RESOURCE_STATE_GENERIC_READ, 0, &IID_ID3D12Resource, &cbresource);
+
+  D3D12_CONSTANT_BUFFER_VIEW_DESC cbvd = {0};
+  cbvd.BufferLocation = cbresource->lpVtbl->GetGPUVirtualAddress(cbresource);
+  cbvd.SizeInBytes = sizeof(CB0);
+  device->lpVtbl->CreateConstantBufferView(device, &cbvd, DXGetCPUDescriptorHandleForHeapStart(cbvheap));
+
+  CB0 data = {0};
+  //MIdentity(&data.perspective);
+  MPerspective(&data.perspective, DToR(100.0f), 0.1f, 100.0f);
+
+  void *ptr;
+  D3D12_RANGE range = {0};
+  cbresource->lpVtbl->Map(cbresource, 0, &range, &ptr);
+  CopyMemory(ptr, &data, sizeof(CB0));
+  //cbresource->lpVtbl->Unmap(cbresource, 0, 0);
+
   DX12STATE state = {0};
   state.debug = debug;
   state.factory = factory;
@@ -205,7 +281,8 @@ DX12STATE DXInit(HWND window) {
   state.queue = queue;
   state.infoqueue = infoqueue;
   state.swapchain = swapchain;
-  state.heap = heap;
+  state.rtvheap = rtvheap;
+  state.cbvheap = cbvheap;
   state.rendertargets[0] = rendertargets[0];
   state.rendertargets[1] = rendertargets[1];
   state.allocator = allocator;
@@ -214,6 +291,7 @@ DX12STATE DXInit(HWND window) {
   state.fenceevent = fenceevent;
   state.rootsignature = rootsignature;
   state.pipeline = pipeline;
+  DXWaitForFence(&state); // TODO tmp cbuffer
   return state;
 }
 
@@ -240,7 +318,6 @@ ID3D12Resource *DXCreateResource(DX12STATE *state, void *data, unsigned int tota
   buffer->lpVtbl->Map(buffer, 0, &range, &ptr);
   CopyMemory(ptr, data, totalsize);
   buffer->lpVtbl->Unmap(buffer, 0, 0);
-
   DXWaitForFence(state);
   return buffer;
 }

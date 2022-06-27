@@ -5,6 +5,7 @@
 #include <math.h>
 #pragma warning(pop)
 
+#include "win64_math.h"
 #include "resources.h"
 
 #define SizeofArray(x) ((sizeof(x) / sizeof((x)[0])))
@@ -30,7 +31,8 @@ typedef struct {
   ID3D12InfoQueue *infoqueue;
   ID3D12CommandQueue *queue;
   IDXGISwapChain3 *swapchain;
-  ID3D12DescriptorHeap *heap;
+  ID3D12DescriptorHeap *rtvheap;
+  ID3D12DescriptorHeap *cbvheap;
   ID3D12Resource *rendertargets[2];
   ID3D12CommandAllocator *allocator;
   ID3D12GraphicsCommandList *list;
@@ -47,10 +49,10 @@ typedef struct {
 } DX12VERTEXBUFFER;
 
 #pragma pack(push, 1)
-  typedef struct {
-    float position[3];
-    float colour[4];
-  } VERTEX;
+typedef struct {
+  float position[3];
+  float colour[4];
+} VERTEX;
 #pragma pack(pop)
 
 #include "win64_dx12.c"
@@ -75,9 +77,9 @@ void MainEntry(void) {
 
   VERTEX vertices[] =
   {
-    {{0, 0, 0}, {1, 1, 1, 1}},
-    {{-1, -1, 0}, {0, 1, 1, 1}},
-    {{1, -1, 0}, {1, 1, 0, 1}}
+    {{0, 0, 1.5f}, {1, 0, 1, 1}},
+    {{-1, -1, 1.5f}, {0, 1, 1, 1}},
+    {{1, -1, 1.5f}, {1, 1, 0, 1}}
   };
   DX12VERTEXBUFFER vb = DXCreateVertexBuffer(&state, vertices, sizeof(VERTEX), sizeof(vertices));
 
