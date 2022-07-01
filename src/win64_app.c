@@ -3,6 +3,7 @@
 #include <d3d12.h>
 #include <dxgi1_4.h>
 #include <math.h>
+#include <hidusage.h>
 #pragma warning(pop)
 
 #include "win64_math.h"
@@ -10,20 +11,18 @@
 
 #define SizeofArray(x) ((sizeof(x) / sizeof((x)[0])))
 
-LRESULT WinMessageProc(HWND window, UINT msg, WPARAM wparam, LPARAM lparam) {
-  switch (msg) {
-  case WM_CLOSE:
-  case WM_DESTROY: {
-    ExitProcess(0);
-  } break;
-
-  default: {
-    return DefWindowProc(window, msg, wparam, lparam);
-  } break;
-  }
-}
+#pragma pack(push, 1)
+typedef struct {
+  MATRIX perspective;
+  MATRIX transform;
+  MATRIX camera;
+  MATRIX nothings[1];
+} CB0;
+#pragma pack(pop)
+  
 
 typedef struct {
+  void *ptr;
   ID3D12Debug *debug;
   IDXGIFactory4 *factory;
   IDXGIAdapter *adapter;
@@ -41,12 +40,18 @@ typedef struct {
   unsigned long long fencevalue;
   ID3D12RootSignature *rootsignature;
   ID3D12PipelineState *pipeline;
+  ID3D12DescriptorHeap *dsvheap;
 } DX12STATE;
 
 typedef struct {
   ID3D12Resource *buffer;
   D3D12_VERTEX_BUFFER_VIEW view;
 } DX12VERTEXBUFFER;
+
+typedef struct {
+  ID3D12Resource *buffer;
+  D3D12_INDEX_BUFFER_VIEW view;
+} DX12INDEXBUFFER;
 
 #pragma pack(push, 1)
 typedef struct {
@@ -55,16 +60,34 @@ typedef struct {
 } VERTEX;
 #pragma pack(pop)
 
+#include "win64_rawinput.c"
 #include "win64_dx12.c"
+
+LRESULT WinMessageProc(HWND window, UINT msg, WPARAM wparam, LPARAM lparam) {
+  switch (msg) {
+  case WM_CLOSE:
+  case WM_DESTROY: {
+    ExitProcess(0);
+  } break;
+
+  case WM_INPUT: {
+    RIParse((HRAWINPUT)lparam);
+  };
+
+  default: {
+    return DefWindowProc(window, msg, wparam, lparam);
+  } break;
+  }
+}
 
 void MainEntry(void) {
   HINSTANCE instance = GetModuleHandle(0);
-
+  
   WNDCLASSEXA wc = {0};
   wc.cbSize = sizeof(wc);
   wc.hInstance = instance;
   wc.lpfnWndProc = WinMessageProc;
-  wc.lpszClassName = "24/06/2022";
+  wc.lpszClassName = "24/06/2022Slinapp";
 
   if (!RegisterClassExA(&wc))
     ExitProcess(1);
@@ -73,15 +96,44 @@ void MainEntry(void) {
   if (!window)
     ExitProcess(1);
   
+  RIInit(window);
   DX12STATE state = DXInit(window);
 
   VERTEX vertices[] =
   {
-    {{0, 0, 1.5f}, {1, 0, 1, 1}},
-    {{-1, -1, 1.5f}, {0, 1, 1, 1}},
-    {{1, -1, 1.5f}, {1, 1, 0, 1}}
+    {{-1, -1, -1}, {1, 0, 0, 1}},
+    {{1, -1, -1},  {0, 1, 0, 1}},
+    {{1, 1, -1},   {0, 0, 1, 1}},
+    {{-1, 1, -1},  {0, 1, 0, 1}},
+    {{-1, -1, 1}, {0, 0, 1, 1}},
+    {{1, -1, 1},  {0, 1, 0, 1}},
+    {{1, 1, 1},   {1, 0, 0, 1}},
+    {{-1, 1, 1},  {0, 1, 0, 1}},
   };
   DX12VERTEXBUFFER vb = DXCreateVertexBuffer(&state, vertices, sizeof(VERTEX), sizeof(vertices));
+
+  unsigned int indices[] = {
+  		// front
+		0, 1, 2,
+		2, 3, 0,
+		// right
+		1, 5, 6,
+		6, 2, 1,
+		// back
+		7, 6, 5,
+		5, 4, 7,
+		// left
+		4, 0, 3,
+		3, 7, 4,
+		// bottom
+		4, 5, 1,
+		1, 0, 4,
+		// top
+		3, 2, 6,
+		6, 7, 3
+  
+  };
+  DX12INDEXBUFFER ib = DXCreateIndexBuffer(&state, indices, sizeof(indices));
 
   unsigned long long counter;
   unsigned long long frequency;
@@ -96,10 +148,22 @@ void MainEntry(void) {
     }
 
     DXPrepareFrame(&state);
+
+    static unsigned int countera = 0;
+    countera++;
+
+    CB0 data = {0};
+    MPerspective(&data.perspective, DToR(100.0f), 0.1f, 100.0f);
+    float rot = DToR(countera / 5.0f);
+    MTransform(&data.transform, 0, 0, 5, rot, rot, rot);
+    MTransform(&data.camera, 0, 0, -rot, 0, 0, 0);
+
+    CopyMemory(state.ptr, &data, sizeof(CB0));
       
     state.list->lpVtbl->IASetPrimitiveTopology(state.list, D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
     state.list->lpVtbl->IASetVertexBuffers(state.list, 0, 1, &vb.view);
-    state.list->lpVtbl->DrawInstanced(state.list, 3, 1, 0, 0);
+    state.list->lpVtbl->IASetIndexBuffer(state.list, &ib.view);
+    state.list->lpVtbl->DrawIndexedInstanced(state.list, 3*12, 1, 0, 0, 0);
 
     DXFlushFrame(&state);
 

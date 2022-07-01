@@ -52,9 +52,11 @@ void DXPrepareFrame(DX12STATE *state) {
 
   D3D12_CPU_DESCRIPTOR_HANDLE cpudescriptor = DXGetCPUDescriptorHandleForHeapStart(state->rtvheap);
   cpudescriptor.ptr += frame * state->device->lpVtbl->GetDescriptorHandleIncrementSize(state->device, D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
-  state->list->lpVtbl->OMSetRenderTargets(state->list, 1, &cpudescriptor, 0, 0);
+  D3D12_CPU_DESCRIPTOR_HANDLE sdvdescriptor = DXGetCPUDescriptorHandleForHeapStart(state->dsvheap); 
+  state->list->lpVtbl->OMSetRenderTargets(state->list, 1, &cpudescriptor, 0, &sdvdescriptor);
 
   state->list->lpVtbl->ClearRenderTargetView(state->list, cpudescriptor, (float[4]) {1.0f, 1.0f, 1.0f, 1.0f}, 0, 0);
+  state->list->lpVtbl->ClearDepthStencilView(state->list, DXGetCPUDescriptorHandleForHeapStart(state->dsvheap), D3D12_CLEAR_FLAG_DEPTH, 1.0f, 0, 0, 0);
 }
 
 void DXFlushFrame(DX12STATE *state) {
@@ -154,6 +156,43 @@ DX12STATE DXInit(HWND window) {
     cpudescriptor.ptr += rtvDescriptorSize;
   }
 
+  // Setup depth stencils
+  ID3D12DescriptorHeap *dsvheap;
+  {
+    dhd = (D3D12_DESCRIPTOR_HEAP_DESC){0};
+    dhd.Type = D3D12_DESCRIPTOR_HEAP_TYPE_DSV;
+    dhd.NumDescriptors = 1;
+    device->lpVtbl->CreateDescriptorHeap(device, &dhd, &IID_ID3D12DescriptorHeap, &dsvheap);
+
+    D3D12_HEAP_PROPERTIES hp = {0};
+    hp.Type = D3D12_HEAP_TYPE_DEFAULT;
+    hp.CreationNodeMask = 1;
+    hp.VisibleNodeMask = 1;
+
+    D3D12_RESOURCE_DESC rc = {0};
+    rc.Dimension = D3D12_RESOURCE_DIMENSION_TEXTURE2D;
+    rc.Width = WINDOW_WIDTH;
+    rc.Height = WINDOW_HEIGHT;
+    rc.DepthOrArraySize = 1;
+    rc.MipLevels = 1;
+    rc.SampleDesc.Count = 1;
+    rc.Format = DXGI_FORMAT_D32_FLOAT;
+    rc.Flags = D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL;
+
+    D3D12_CLEAR_VALUE cv = {0};
+    cv.Format = DXGI_FORMAT_D32_FLOAT;
+    cv.DepthStencil.Depth = 1.0f;
+
+    ID3D12Resource *dsresource;
+    device->lpVtbl->CreateCommittedResource(device, &hp, 0, &rc, D3D12_RESOURCE_STATE_DEPTH_WRITE, &cv, &IID_ID3D12Resource, &dsresource);
+
+    D3D12_DEPTH_STENCIL_VIEW_DESC dsvd = {0};
+    dsvd.Format = DXGI_FORMAT_D32_FLOAT;
+    dsvd.ViewDimension = D3D12_DSV_DIMENSION_TEXTURE2D;
+
+    device->lpVtbl->CreateDepthStencilView(device, dsresource, &dsvd, DXGetCPUDescriptorHandleForHeapStart(dsvheap));
+  }
+
   // Setup resources
   D3D12_DESCRIPTOR_RANGE1 dr = {0};
   dr.RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_CBV;
@@ -212,11 +251,17 @@ DX12STATE DXInit(HWND window) {
   gpsd.RasterizerState.SlopeScaledDepthBias = D3D12_DEFAULT_SLOPE_SCALED_DEPTH_BIAS;
   gpsd.RasterizerState.DepthClipEnable = 1;
   gpsd.RasterizerState.ConservativeRaster = D3D12_CONSERVATIVE_RASTERIZATION_MODE_OFF;
+  gpsd.DepthStencilState.DepthEnable = 1;
+  gpsd.DepthStencilState.DepthWriteMask = D3D12_DEPTH_WRITE_MASK_ALL;
+  gpsd.DepthStencilState.DepthFunc = D3D12_COMPARISON_FUNC_LESS;
+  gpsd.DepthStencilState.FrontFace = (D3D12_DEPTH_STENCILOP_DESC){D3D12_STENCIL_OP_KEEP, D3D12_STENCIL_OP_KEEP, D3D12_STENCIL_OP_KEEP, D3D12_COMPARISON_FUNC_ALWAYS};
+  gpsd.DepthStencilState.BackFace = (D3D12_DEPTH_STENCILOP_DESC){D3D12_STENCIL_OP_KEEP, D3D12_STENCIL_OP_KEEP, D3D12_STENCIL_OP_KEEP, D3D12_COMPARISON_FUNC_ALWAYS};
   gpsd.InputLayout.pInputElementDescs = ieds;
   gpsd.InputLayout.NumElements = SizeofArray(ieds);
   gpsd.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
   gpsd.NumRenderTargets = 1;
   gpsd.RTVFormats[0] = DXGI_FORMAT_R8G8B8A8_UNORM;
+  gpsd.DSVFormat = DXGI_FORMAT_D32_FLOAT;
   gpsd.SampleDesc.Count = 1;
   for (unsigned int i = 0; i < D3D12_SIMULTANEOUS_RENDER_TARGET_COUNT; i++) {
     gpsd.BlendState.RenderTarget[i] = (D3D12_RENDER_TARGET_BLEND_DESC){0, 0, D3D12_BLEND_ONE, D3D12_BLEND_ZERO, D3D12_BLEND_OP_ADD, D3D12_BLEND_ONE, D3D12_BLEND_ZERO, D3D12_BLEND_OP_ADD, D3D12_LOGIC_OP_NOOP, D3D12_COLOR_WRITE_ENABLE_ALL};
@@ -233,14 +278,6 @@ DX12STATE DXInit(HWND window) {
   ID3D12DescriptorHeap *cbvheap;
   device->lpVtbl->CreateDescriptorHeap(device, &dhd, &IID_ID3D12DescriptorHeap, &cbvheap);
 
-// TODO move
-#pragma pack(push, 1)
-typedef struct {
-  MATRIX perspective;
-  MATRIX nothings[3];
-} CB0;
-#pragma pack(pop)
-  
   D3D12_HEAP_PROPERTIES hp = {0};
   hp.Type = D3D12_HEAP_TYPE_UPLOAD;
   hp.CreationNodeMask = 1;
@@ -274,6 +311,8 @@ typedef struct {
   //cbresource->lpVtbl->Unmap(cbresource, 0, 0);
 
   DX12STATE state = {0};
+  state.ptr = ptr;
+  state.dsvheap = dsvheap;
   state.debug = debug;
   state.factory = factory;
   state.adapter = adapter;
@@ -336,3 +375,16 @@ DX12VERTEXBUFFER DXCreateVertexBuffer(DX12STATE *state, void *data, unsigned int
   return ret;
 }
 
+DX12INDEXBUFFER DXCreateIndexBuffer(DX12STATE *state, void *data, unsigned int totalsize) {
+  ID3D12Resource *resource = DXCreateResource(state, data, totalsize);
+
+  D3D12_INDEX_BUFFER_VIEW indexbufferview = {0};
+  indexbufferview.BufferLocation = resource->lpVtbl->GetGPUVirtualAddress(resource);
+  indexbufferview.SizeInBytes = totalsize;
+  indexbufferview.Format = DXGI_FORMAT_R32_UINT;
+
+  DX12INDEXBUFFER ret = {0};
+  ret.buffer = resource;
+  ret.view = indexbufferview;
+  return ret;
+}

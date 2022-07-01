@@ -27,4 +27,26 @@ void MPerspective(MATRIX *m, float fov, float nearz, float farz) {
   (*m)[15] = 0.0f;
 }
 
+void MTransform(MATRIX *m, float tx, float ty, float tz, float rx, float ry, float rz) {
+  MIdentity(m);
+  (*m)[3] = tx;
+  (*m)[7] = ty;
+  (*m)[11] = tz;
 
+  float srx = sinf(rx);
+  float crx = cosf(rx);
+  float sry = sinf(ry);
+  float cry = cosf(ry);
+  float srz = sinf(rz);
+  float crz = cosf(rz);
+  
+  (*m)[0] = crz*cry;
+  (*m)[1] = crz*sry*srx - srz*crx;
+  (*m)[2] = crz*sry*crx + srz*srx;
+  (*m)[4] = srz*cry;
+  (*m)[5] = srz*sry*srx + crz*crx;
+  (*m)[6] = srz*sry*crx - crz*srx;
+  (*m)[8] = -sry;
+  (*m)[9] = cry*srx;
+  (*m)[10] = cry*crx;
+}
