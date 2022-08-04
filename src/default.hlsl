@@ -40,7 +40,6 @@ float4x4 inverse(float4x4 m) {
 
 struct PSInput {
   float4 position : SV_POSITION;
-  float4 colour : COLOUR;
 };
 
 cbuffer CB0 : register(b0) {
@@ -50,13 +49,12 @@ cbuffer CB0 : register(b0) {
 };
 
 
-PSInput VertexEntry(float3 position : POSITION, float4 colour : COLOUR) {
+PSInput VertexEntry(float3 position : POSITION, float3 normal : NORMAL, float2 texture : TEXTURE) {
   PSInput ret;
   ret.position = mul(mul(mul(float4(position, 1), transform), inverse(camera)), perspective);
-  ret.colour = colour;
   return ret;
 }
 
 float4 PixelEntry(PSInput input) : SV_TARGET {
-  return input.colour;
+  return input.position;
 }

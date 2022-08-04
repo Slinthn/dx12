@@ -6,140 +6,109 @@
 #include <hidusage.h>
 #pragma warning(pop)
 
-#include "win64_math.h"
+#include "win64_types.h"
+#include "win64_math.c"
 #include "resources.h"
-
-#define SizeofArray(x) ((sizeof(x) / sizeof((x)[0])))
-
-#pragma pack(push, 1)
-typedef struct {
-  MATRIX perspective;
-  MATRIX transform;
-  MATRIX camera;
-  MATRIX nothings[1];
-} CB0;
-#pragma pack(pop)
-  
-
-typedef struct {
-  void *ptr;
-  ID3D12Debug *debug;
-  IDXGIFactory4 *factory;
-  IDXGIAdapter *adapter;
-  ID3D12Device *device;
-  ID3D12InfoQueue *infoqueue;
-  ID3D12CommandQueue *queue;
-  IDXGISwapChain3 *swapchain;
-  ID3D12DescriptorHeap *rtvheap;
-  ID3D12DescriptorHeap *cbvheap;
-  ID3D12Resource *rendertargets[2];
-  ID3D12CommandAllocator *allocator;
-  ID3D12GraphicsCommandList *list;
-  ID3D12Fence *fence;
-  HANDLE fenceevent;
-  unsigned long long fencevalue;
-  ID3D12RootSignature *rootsignature;
-  ID3D12PipelineState *pipeline;
-  ID3D12DescriptorHeap *dsvheap;
-} DX12STATE;
-
-typedef struct {
-  ID3D12Resource *buffer;
-  D3D12_VERTEX_BUFFER_VIEW view;
-} DX12VERTEXBUFFER;
-
-typedef struct {
-  ID3D12Resource *buffer;
-  D3D12_INDEX_BUFFER_VIEW view;
-} DX12INDEXBUFFER;
-
-#pragma pack(push, 1)
-typedef struct {
-  float position[3];
-  float colour[4];
-} VERTEX;
-#pragma pack(pop)
 
 #include "win64_rawinput.c"
 #include "win64_dx12.c"
 
-LRESULT WinMessageProc(HWND window, UINT msg, WPARAM wparam, LPARAM lparam) {
+LRESULT WMessageProc(HWND window, UINT msg, WPARAM wparam, LPARAM lparam) {
+  WSTATE *state = (WSTATE *)GetWindowLongPtrA(window, GWLP_USERDATA);
+
   switch (msg) {
+  case WM_CREATE: {
+    SetWindowLongPtrA(window, GWLP_USERDATA, (LONG_PTR)(((CREATESTRUCT *)lparam)->lpCreateParams));
+    return 1;
+  } break;
+
   case WM_CLOSE:
   case WM_DESTROY: {
     ExitProcess(0);
   } break;
 
   case WM_INPUT: {
-    RIParse((HRAWINPUT)lparam);
-  };
-
-  default: {
-    return DefWindowProc(window, msg, wparam, lparam);
+    RIParse(&state->controls, (HRAWINPUT)lparam);
+    return DefWindowProcA(window, msg, wparam, lparam);
   } break;
   }
+  
+  return DefWindowProcA(window, msg, wparam, lparam);
 }
 
-void MainEntry(void) {
+WRESOURCE WLoadResource(unsigned int name, unsigned int type) {
+  HRSRC src = FindResource(0, MAKEINTRESOURCE(name), MAKEINTRESOURCE(type));
+  HGLOBAL global = LoadResource(0, src);
+  void *data = LockResource(global);
+  unsigned int size = SizeofResource(0, src);
+
+  WRESOURCE res = {0};
+  res.src = src;
+  res.global = global;
+  res.data = data;
+  res.size = size;
+  return res;
+}
+
+SM WLoadSM(WRESOURCE res) {
+  SMHEADER *header = (SMHEADER *)res.data;
+  if (CompareStringA(LOCALE_CUSTOM_DEFAULT, 0, header->signature, 2, "SM", 2) != CSTR_EQUAL) { // TODO does this work?
+    ExitProcess(EXIT_ERROR_CODE_INVALID_SM);
+  }
+
+  SM ret = {0};
+  ret.header = *header;
+  ret.vertices = (VERTEX *)((unsigned long long)res.data + (unsigned long long)sizeof(SMHEADER));
+  ret.indices = (unsigned int *)((unsigned long long)ret.vertices + (unsigned long long)(ret.header.vertexcount * sizeof(VERTEX)));
+  return ret;
+}
+
+void WEntry(void) {
   HINSTANCE instance = GetModuleHandle(0);
   
   WNDCLASSEXA wc = {0};
   wc.cbSize = sizeof(wc);
   wc.hInstance = instance;
-  wc.lpfnWndProc = WinMessageProc;
+  wc.lpfnWndProc = WMessageProc;
   wc.lpszClassName = "24/06/2022Slinapp";
 
   if (!RegisterClassExA(&wc))
     ExitProcess(1);
-  
-  HWND window = CreateWindowExA(0, wc.lpszClassName, "App", WS_OVERLAPPEDWINDOW | WS_VISIBLE, CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT, 0, 0, instance, 0);
+ 
+  WSTATE wstate = {0}; 
+  HWND window = CreateWindowExA(0, wc.lpszClassName, "App", WS_OVERLAPPEDWINDOW | WS_VISIBLE, CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT, 0, 0, instance, &wstate);
   if (!window)
     ExitProcess(1);
   
   RIInit(window);
   DX12STATE state = DXInit(window);
 
-  VERTEX vertices[] =
-  {
-    {{-1, -1, -1}, {1, 0, 0, 1}},
-    {{1, -1, -1},  {0, 1, 0, 1}},
-    {{1, 1, -1},   {0, 0, 1, 1}},
-    {{-1, 1, -1},  {0, 1, 0, 1}},
-    {{-1, -1, 1}, {0, 0, 1, 1}},
-    {{1, -1, 1},  {0, 1, 0, 1}},
-    {{1, 1, 1},   {1, 0, 0, 1}},
-    {{-1, 1, 1},  {0, 1, 0, 1}},
-  };
-  DX12VERTEXBUFFER vb = DXCreateVertexBuffer(&state, vertices, sizeof(VERTEX), sizeof(vertices));
+  WRESOURCE cuberes = WLoadResource(CUBE, MODEL);
+  SM cubesm = WLoadSM(cuberes);
 
-  unsigned int indices[] = {
-  		// front
-		0, 1, 2,
-		2, 3, 0,
-		// right
-		1, 5, 6,
-		6, 2, 1,
-		// back
-		7, 6, 5,
-		5, 4, 7,
-		// left
-		4, 0, 3,
-		3, 7, 4,
-		// bottom
-		4, 5, 1,
-		1, 0, 4,
-		// top
-		3, 2, 6,
-		6, 7, 3
+  DX12VERTEXBUFFER vb = DXCreateVertexBuffer(&state, cubesm.vertices, sizeof(VERTEX), cubesm.header.vertexcount * sizeof(VERTEX));
+  DX12INDEXBUFFER ib = DXCreateIndexBuffer(&state, cubesm.indices, cubesm.header.facecount * 3 * sizeof(unsigned int));
+
+  WRESOURCE vertex = WLoadResource(DEFAULT_VERTEX, VERTEXSHADER);
+  WRESOURCE pixel = WLoadResource(DEFAULT_PIXEL, PIXELSHADER);
   
+  D3D12_INPUT_ELEMENT_DESC ieds[] =
+  {
+    {"POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, D3D12_APPEND_ALIGNED_ELEMENT, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0},
+    {"NORMAL", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, D3D12_APPEND_ALIGNED_ELEMENT, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0},
+    {"TEXTURE", 0, DXGI_FORMAT_R32G32_FLOAT, 0, D3D12_APPEND_ALIGNED_ELEMENT, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0},
   };
-  DX12INDEXBUFFER ib = DXCreateIndexBuffer(&state, indices, sizeof(indices));
+
+  unsigned int cbsizes[] = {sizeof(CB0)};
+  DXSHADER shader = DXCreateShader(&state, 1, cbsizes, vertex.data, vertex.size, pixel.data, pixel.size, ieds, SizeofArray(ieds));
 
   unsigned long long counter;
   unsigned long long frequency;
   QueryPerformanceCounter((LARGE_INTEGER *)&counter);
   QueryPerformanceFrequency((LARGE_INTEGER *)&frequency);
 
+  GAMESTATE gstate = {0};
+  
   while (1) {
     MSG msg;
     while (PeekMessageA(&msg, window, 0, 0, PM_REMOVE)) {
@@ -147,7 +116,16 @@ void MainEntry(void) {
       DispatchMessageA(&msg);
     }
 
+    state.allocator->lpVtbl->Reset(state.allocator);
+    state.list->lpVtbl->Reset(state.list, state.allocator, shader.pipeline);
+    state.list->lpVtbl->SetGraphicsRootSignature(state.list, shader.rootsignature);
+    state.list->lpVtbl->SetDescriptorHeaps(state.list, 1, &shader.cbvheap);
+    state.list->lpVtbl->SetGraphicsRootDescriptorTable(state.list, 0, DXGetGPUDescriptorHandleForHeapStart(shader.cbvheap));
+
     DXPrepareFrame(&state);
+
+    gstate.camera.position[0] += wstate.controls.move[0];
+    gstate.camera.position[2] += wstate.controls.move[1];
 
     static unsigned int countera = 0;
     countera++;
@@ -156,14 +134,14 @@ void MainEntry(void) {
     MPerspective(&data.perspective, DToR(100.0f), 0.1f, 100.0f);
     float rot = DToR(countera / 5.0f);
     MTransform(&data.transform, 0, 0, 5, rot, rot, rot);
-    MTransform(&data.camera, 0, 0, -rot, 0, 0, 0);
+    MTransform(&data.camera, gstate.camera.position[0], gstate.camera.position[1], gstate.camera.position[2], gstate.camera.rotation[0], gstate.camera.rotation[1], gstate.camera.rotation[2]);
 
-    CopyMemory(state.ptr, &data, sizeof(CB0));
+    CopyMemory(shader.cbptrs[0], &data, sizeof(CB0));
       
     state.list->lpVtbl->IASetPrimitiveTopology(state.list, D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
     state.list->lpVtbl->IASetVertexBuffers(state.list, 0, 1, &vb.view);
     state.list->lpVtbl->IASetIndexBuffer(state.list, &ib.view);
-    state.list->lpVtbl->DrawIndexedInstanced(state.list, 3*12, 1, 0, 0, 0);
+    state.list->lpVtbl->DrawIndexedInstanced(state.list, cubesm.header.facecount * 3, 1, 0, 0, 0);
 
     DXFlushFrame(&state);
 

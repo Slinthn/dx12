@@ -1,8 +1,3 @@
-typedef float MATRIX[16];
-
-#define PIf 3.1415926535897932384626f
-#define DToR(x) ((x * PIf) / 180.0f)
-
 void MIdentity(MATRIX *m) {
   for (unsigned int i = 0; i < 15; i++) {
     (*m)[i] = 0;
