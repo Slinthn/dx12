@@ -1,5 +1,5 @@
 void MIdentity(MATRIX *m) {
-  for (unsigned int i = 0; i < 15; i++) {
+  for (UDWORD i = 0; i < 15; i++) {
     (*m)[i] = 0;
   }
 
@@ -44,4 +44,27 @@ void MTransform(MATRIX *m, float tx, float ty, float tz, float rx, float ry, flo
   (*m)[8] = -sry;
   (*m)[9] = cry*srx;
   (*m)[10] = cry*crx;
+}
+
+void VECCopy2f(VECTOR2F *vec, VECTOR2F from) {
+  (*vec)[0] = from[0];
+  (*vec)[1] = from[1];
+}
+
+void VECMul2f(VECTOR2F *vec, VECTOR2F mul) {
+  (*vec)[0] *= mul[0];
+  (*vec)[1] *= mul[1];
+}
+
+float VECMagnitude2f(VECTOR2F mag) {
+  return sqrtf(mag[0]*mag[0] + mag[1]*mag[1]);
+}
+
+void VECNormalise2f(VECTOR2F *vec) {
+  float magnitude = VECMagnitude2f(*vec);
+
+  if (magnitude != 0) {
+    (*vec)[0] /= magnitude;
+    (*vec)[1] /= magnitude;
+  }
 }

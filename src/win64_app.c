@@ -6,15 +6,21 @@
 #include <hidusage.h>
 #pragma warning(pop)
 
-#include "win64_types.h"
-#include "win64_math.c"
-#include "resources.h"
+#include "header/win64_types.h"
+#include "header/win64_math.h"
+#include "header/win64_dx12.h"
+#include "header/win64_resource.h"
+#include "header/win64_rawinput.h"
+#include "header/win64_app.h"
+#include "header/win64_resources.h"
 
+#include "win64_math.c"
 #include "win64_rawinput.c"
 #include "win64_dx12.c"
+#include "win64_resource.c"
 
 LRESULT WMessageProc(HWND window, UINT msg, WPARAM wparam, LPARAM lparam) {
-  WSTATE *state = (WSTATE *)GetWindowLongPtrA(window, GWLP_USERDATA);
+  WINSTATE *state = (WINSTATE *)GetWindowLongPtrA(window, GWLP_USERDATA);
 
   switch (msg) {
   case WM_CREATE: {
@@ -36,38 +42,13 @@ LRESULT WMessageProc(HWND window, UINT msg, WPARAM wparam, LPARAM lparam) {
   return DefWindowProcA(window, msg, wparam, lparam);
 }
 
-WRESOURCE WLoadResource(unsigned int name, unsigned int type) {
-  HRSRC src = FindResource(0, MAKEINTRESOURCE(name), MAKEINTRESOURCE(type));
-  HGLOBAL global = LoadResource(0, src);
-  void *data = LockResource(global);
-  unsigned int size = SizeofResource(0, src);
-
-  WRESOURCE res = {0};
-  res.src = src;
-  res.global = global;
-  res.data = data;
-  res.size = size;
-  return res;
-}
-
-SM WLoadSM(WRESOURCE res) {
-  SMHEADER *header = (SMHEADER *)res.data;
-  if (CompareStringA(LOCALE_CUSTOM_DEFAULT, 0, header->signature, 2, "SM", 2) != CSTR_EQUAL) { // TODO does this work?
-    ExitProcess(EXIT_ERROR_CODE_INVALID_SM);
-  }
-
-  SM ret = {0};
-  ret.header = *header;
-  ret.vertices = (VERTEX *)((unsigned long long)res.data + (unsigned long long)sizeof(SMHEADER));
-  ret.indices = (unsigned int *)((unsigned long long)ret.vertices + (unsigned long long)(ret.header.vertexcount * sizeof(VERTEX)));
-  return ret;
-}
+#include "win64_game.c"
 
 void WEntry(void) {
   HINSTANCE instance = GetModuleHandle(0);
   
   WNDCLASSEXA wc = {0};
-  wc.cbSize = sizeof(wc);
+  wc.cbSize = sizeof(WNDCLASSEXA);
   wc.hInstance = instance;
   wc.lpfnWndProc = WMessageProc;
   wc.lpszClassName = "24/06/2022Slinapp";
@@ -75,39 +56,21 @@ void WEntry(void) {
   if (!RegisterClassExA(&wc))
     ExitProcess(1);
  
-  WSTATE wstate = {0}; 
-  HWND window = CreateWindowExA(0, wc.lpszClassName, "App", WS_OVERLAPPEDWINDOW | WS_VISIBLE, CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT, 0, 0, instance, &wstate);
+  WINSTATE winstate = {0};
+
+  HWND window = CreateWindowExA(0, wc.lpszClassName, "App", WS_OVERLAPPEDWINDOW | WS_VISIBLE, CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT, 0, 0, instance, &winstate);
   if (!window)
     ExitProcess(1);
   
   RIInit(window);
-  DX12STATE state = DXInit(window);
+  winstate.dxstate = DXInit(window);
 
-  WRESOURCE cuberes = WLoadResource(CUBE, MODEL);
-  SM cubesm = WLoadSM(cuberes);
+  GameInit(&winstate);
 
-  DX12VERTEXBUFFER vb = DXCreateVertexBuffer(&state, cubesm.vertices, sizeof(VERTEX), cubesm.header.vertexcount * sizeof(VERTEX));
-  DX12INDEXBUFFER ib = DXCreateIndexBuffer(&state, cubesm.indices, cubesm.header.facecount * 3 * sizeof(unsigned int));
-
-  WRESOURCE vertex = WLoadResource(DEFAULT_VERTEX, VERTEXSHADER);
-  WRESOURCE pixel = WLoadResource(DEFAULT_PIXEL, PIXELSHADER);
-  
-  D3D12_INPUT_ELEMENT_DESC ieds[] =
-  {
-    {"POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, D3D12_APPEND_ALIGNED_ELEMENT, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0},
-    {"NORMAL", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, D3D12_APPEND_ALIGNED_ELEMENT, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0},
-    {"TEXTURE", 0, DXGI_FORMAT_R32G32_FLOAT, 0, D3D12_APPEND_ALIGNED_ELEMENT, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0},
-  };
-
-  unsigned int cbsizes[] = {sizeof(CB0)};
-  DXSHADER shader = DXCreateShader(&state, 1, cbsizes, vertex.data, vertex.size, pixel.data, pixel.size, ieds, SizeofArray(ieds));
-
-  unsigned long long counter;
-  unsigned long long frequency;
+  UQWORD counter;
+  UQWORD frequency;
   QueryPerformanceCounter((LARGE_INTEGER *)&counter);
   QueryPerformanceFrequency((LARGE_INTEGER *)&frequency);
-
-  GAMESTATE gstate = {0};
   
   while (1) {
     MSG msg;
@@ -116,38 +79,11 @@ void WEntry(void) {
       DispatchMessageA(&msg);
     }
 
-    state.allocator->lpVtbl->Reset(state.allocator);
-    state.list->lpVtbl->Reset(state.list, state.allocator, shader.pipeline);
-    state.list->lpVtbl->SetGraphicsRootSignature(state.list, shader.rootsignature);
-    state.list->lpVtbl->SetDescriptorHeaps(state.list, 1, &shader.cbvheap);
-    state.list->lpVtbl->SetGraphicsRootDescriptorTable(state.list, 0, DXGetGPUDescriptorHandleForHeapStart(shader.cbvheap));
+    GameUpdate(&winstate);
 
-    DXPrepareFrame(&state);
-
-    gstate.camera.position[0] += wstate.controls.move[0];
-    gstate.camera.position[2] += wstate.controls.move[1];
-
-    static unsigned int countera = 0;
-    countera++;
-
-    CB0 data = {0};
-    MPerspective(&data.perspective, DToR(100.0f), 0.1f, 100.0f);
-    float rot = DToR(countera / 5.0f);
-    MTransform(&data.transform, 0, 0, 5, rot, rot, rot);
-    MTransform(&data.camera, gstate.camera.position[0], gstate.camera.position[1], gstate.camera.position[2], gstate.camera.rotation[0], gstate.camera.rotation[1], gstate.camera.rotation[2]);
-
-    CopyMemory(shader.cbptrs[0], &data, sizeof(CB0));
-      
-    state.list->lpVtbl->IASetPrimitiveTopology(state.list, D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-    state.list->lpVtbl->IASetVertexBuffers(state.list, 0, 1, &vb.view);
-    state.list->lpVtbl->IASetIndexBuffer(state.list, &ib.view);
-    state.list->lpVtbl->DrawIndexedInstanced(state.list, cubesm.header.facecount * 3, 1, 0, 0, 0);
-
-    DXFlushFrame(&state);
-
-    int tosleep;
+    SDWORD tosleep;
     do {
-      unsigned long long newcounter;
+      UQWORD newcounter;
       QueryPerformanceCounter((LARGE_INTEGER *)&newcounter);
       float delta = ((float)(newcounter - counter) / (float)frequency) * 1000.0f;
       tosleep = (int)floorf((1000.0f / 60.0f) - delta);

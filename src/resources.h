@@ -1,8 +1,0 @@
-#define VERTEXSHADER 0x100
-#define PIXELSHADER 0x101
-#define MODEL 0x102
-
-#define DEFAULT_VERTEX 1
-#define DEFAULT_PIXEL 1
-
-#define CUBE 1

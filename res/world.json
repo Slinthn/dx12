@@ -1,0 +1,25 @@
+{
+  "models": [
+    {
+      "modelid": 1
+    },
+    {
+      "modelid": 2
+    }
+  ],
+
+  "objects": [
+    {
+      "modelid": 1,
+      "textureid": 0,
+      "position": [0, -2.5, 0],
+      "rotation": [0, 0, 0]
+    },
+    {
+      "modelid": 2,
+      "textureid": 0,
+      "position": [-0.65, 4.4, -9.7],
+      "rotation": [0, 0, 0]
+    }
+  ]
+}

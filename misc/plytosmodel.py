@@ -2,7 +2,7 @@ import sys
 from array import array
 
 if len(sys.argv) != 3:
-  print("ERROR: Syntax: plysm <input file> <output file>")
+  print("ERROR: Syntax: plytosmodel <input file> <output file>")
   exit()
 
 inputfilename = sys.argv[1]
@@ -16,8 +16,7 @@ vertexcount = 0
 facecount = 0
 lines = inputfile.readlines()
 
-outputfile.write(b"S")
-outputfile.write(b"M")
+outputfile.write(b"SM")
 
 i = 0
 for i, line in enumerate(lines):

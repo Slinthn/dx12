@@ -1,6 +1,0 @@
-#include "resources.h"
-
-DEFAULT_VERTEX VERTEXSHADER "default_vertex.cso"
-DEFAULT_PIXEL PIXELSHADER "default_pixel.cso"
-
-CUBE MODEL "cube.sm"

@@ -38,23 +38,31 @@ float4x4 inverse(float4x4 m) {
     return ret;
 }
 
-struct PSInput {
+struct PSINPUT {
   float4 position : SV_POSITION;
 };
 
-cbuffer CB0 : register(b0) {
+struct VERTEXDATA {
   float4x4 perspective;
   float4x4 transform;
   float4x4 camera;
 };
 
+cbuffer CB0 : register(b0) {
+  VERTEXDATA vertexdata[100];
+};
 
-PSInput VertexEntry(float3 position : POSITION, float3 normal : NORMAL, float2 texture : TEXTURE) {
-  PSInput ret;
-  ret.position = mul(mul(mul(float4(position, 1), transform), inverse(camera)), perspective);
+cbuffer CB1 : register(b1) {
+  int offset;
+};
+
+PSINPUT VertexEntry(float3 position : POSITION, float3 normal : NORMAL, float2 texture : TEXTURE) {
+  PSINPUT ret;
+  VERTEXDATA data = vertexdata[offset];
+  ret.position = mul(mul(mul(float4(position, 1), data.transform), inverse(data.camera)), data.perspective);
   return ret;
 }
 
-float4 PixelEntry(PSInput input) : SV_TARGET {
+float4 PixelEntry(PSINPUT input) : SV_TARGET {
   return input.position;
 }
