@@ -1,17 +1,29 @@
 void DXWaitForFence(DX12STATE *state) {
+  // Get new fence value 
   UQWORD nextfence = state->fence->lpVtbl->GetCompletedValue(state->fence) + 1;
+
+  // Create fence event
   HANDLE fenceevent = CreateEventA(0, 0, 0, 0);
+
+  // Change the fence value on the GPU (but it only changes when all lists have finished executing)
   state->queue->lpVtbl->Signal(state->queue, state->fence, nextfence);
+
+  // Check if the GPU has already finshed
   if (state->fence->lpVtbl->GetCompletedValue(state->fence) < nextfence) {
+    // Tell the GPU to invoke this event once the fence value is reached (which happens when the lists are finished)
     state->fence->lpVtbl->SetEventOnCompletion(state->fence, nextfence, fenceevent);
+
+    // Wait
     WaitForSingleObject(fenceevent, INFINITE);
   }
 
+  // Delete the event
   CloseHandle(fenceevent);
 }
 
-// The GetCPUDescriptorHandleForHeapStart and GetGPUDescriptorHandleForHeapStart function signatures are incorrect.
-// Hence, the DXGetCPUDescriptorHandleForHeapStart and DXGetGPUDescriptorHandleForHeapStart functions.
+// The GetCPUDescriptorHandleForHeapStart and GetGPUDescriptorHandleForHeapStart function signatures are INCORRECT on the documentation AND in <d3d12.h>.
+// This appears to only be an issue when calling the C interfaces (through lpVtbl), but not when using the C++ interfaces.
+// Hence, I created the DXGetCPUDescriptorHandleForHeapStart and DXGetGPUDescriptorHandleForHeapStart functions.
 D3D12_CPU_DESCRIPTOR_HANDLE DXGetCPUDescriptorHandleForHeapStart(ID3D12DescriptorHeap *heap) {
 #pragma warning(push)
 #pragma warning(disable : 4020)
@@ -34,10 +46,11 @@ DX12STATE DXInit(HWND window) {
   DX12STATE state = {0};
 
   // Setup debug layer
-  ID3D12Debug *debug;
   UDWORD flags = 0;
 #ifdef _DEBUG
   flags |= DXGI_CREATE_FACTORY_DEBUG;
+
+  ID3D12Debug *debug;
   D3D12GetDebugInterface(&IID_ID3D12Debug, &debug);
   debug->lpVtbl->EnableDebugLayer(debug);
 #endif
@@ -82,7 +95,6 @@ DX12STATE DXInit(HWND window) {
 
   // Create fence for command queue
   state.device->lpVtbl->CreateFence(state.device, 0, 0, &IID_ID3D12Fence, &state.fence);
-  state.fenceevent = CreateEventA(0, 0, 0, 0);
 
   // Create swap chain
   DXGI_SWAP_CHAIN_DESC1 swapchaindesc = {0};
@@ -131,7 +143,7 @@ DX12STATE DXInit(HWND window) {
   resourcedesc.Width = WINDOW_WIDTH;
   resourcedesc.Height = WINDOW_HEIGHT;
   resourcedesc.DepthOrArraySize = 1;
-  resourcedesc.MipLevels = 1;
+  resourcedesc.MipLevels = 0; // TODO debug
   resourcedesc.SampleDesc.Count = 1;
   resourcedesc.Format = DXGI_FORMAT_D32_FLOAT;
   resourcedesc.Flags = D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL;
@@ -141,7 +153,7 @@ DX12STATE DXInit(HWND window) {
   clearvalue.DepthStencil.Depth = 1.0f;
 
   ID3D12Resource *depthstencilresource;
-  state.device->lpVtbl->CreateCommittedResource(state.device, &heapproperties, 0, &resourcedesc, D3D12_RESOURCE_STATE_DEPTH_WRITE, &clearvalue, &IID_ID3D12Resource, &depthstencilresource);
+  state.device->lpVtbl->CreateCommittedResource(state.device, &heapproperties, 0, &resourcedesc, D3D12_RESOURCE_STATE_DEPTH_WRITE, &clearvalue, &IID_ID3D12Resource, &depthstencilresource); // TODO make placed resource?
 
   // Retrieve depth stencil view
   D3D12_DEPTH_STENCIL_VIEW_DESC depthstencilviewdesc = {0};
@@ -169,7 +181,7 @@ DXSHADER DXCreateShader(DX12STATE *state, void *vcode, UDWORD vsize, void *pcode
   gpsd.PS.BytecodeLength = psize;
   gpsd.SampleMask = UINT_MAX;
   gpsd.RasterizerState.FillMode = D3D12_FILL_MODE_SOLID;
-  gpsd.RasterizerState.CullMode = D3D12_CULL_MODE_BACK;
+  gpsd.RasterizerState.CullMode = D3D12_CULL_MODE_NONE ;//D3D12_CULL_MODE_BACK; // TODO this
   gpsd.RasterizerState.FrontCounterClockwise = 0; // TODO this maybe
   gpsd.RasterizerState.DepthBias = D3D12_DEFAULT_DEPTH_BIAS;
   gpsd.RasterizerState.DepthBiasClamp = D3D12_DEFAULT_DEPTH_BIAS_CLAMP;
@@ -199,7 +211,7 @@ DXSHADER DXCreateShader(DX12STATE *state, void *vcode, UDWORD vsize, void *pcode
   return shader;
 }
 ID3D12Heap *DXCreateHeap(DX12STATE *state, UQWORD sizeinbytes, D3D12_HEAP_TYPE type) {
-  // Create descriptorheap and align to 64KB
+  // Create heap and align to 64KB
   D3D12_HEAP_DESC heapdesc = {0};
   heapdesc.SizeInBytes = sizeinbytes - (sizeinbytes % (64 * 1024)) + (64 * 1024);
   heapdesc.Properties.Type = type;
@@ -212,6 +224,7 @@ ID3D12Heap *DXCreateHeap(DX12STATE *state, UQWORD sizeinbytes, D3D12_HEAP_TYPE t
 }
 
 ID3D12Resource *DXCreateBufferResource(DX12STATE *state, UQWORD sizeinbytes, ID3D12Heap *heap, D3D12_RESOURCE_STATES resourcestate, UQWORD offset) {
+  // Reserve memory to a resource on a heap
   D3D12_RESOURCE_DESC resourcedesc = {0};
   resourcedesc.Dimension = D3D12_RESOURCE_DIMENSION_BUFFER;
   resourcedesc.Width = sizeinbytes;
@@ -224,67 +237,8 @@ ID3D12Resource *DXCreateBufferResource(DX12STATE *state, UQWORD sizeinbytes, ID3
   ID3D12Resource *resource;
   state->device->lpVtbl->CreatePlacedResource(state->device, heap, offset, &resourcedesc, resourcestate, 0, &IID_ID3D12Resource, &resource);
 
+  // Return
   return resource;
-}
-
-void DXEnableShader(DX12STATE *state, DXSHADER shader) {
-  state->allocator->lpVtbl->Reset(state->allocator);
-  state->list->lpVtbl->Reset(state->list, state->allocator, shader.pipeline);
-  state->list->lpVtbl->SetGraphicsRootSignature(state->list, shader.rootsignature);
-
-  //ID3D12DescriptorHeap *heaps[] = {shader.cbvheap, state->samplerheap};
-  // TODO debug
-  ID3D12DescriptorHeap *heaps[] = {state->descriptorheap, state->samplerheap};
-
-  state->list->lpVtbl->SetDescriptorHeaps(state->list, SizeofArray(heaps), heaps);
-  state->list->lpVtbl->SetGraphicsRootDescriptorTable(state->list, 0, DXGetGPUDescriptorHandleForHeapStart(state->descriptorheap)); // TODO debug
-  // TODO debug
-
-  D3D12_GPU_DESCRIPTOR_HANDLE a = DXGetGPUDescriptorHandleForHeapStart(state->descriptorheap);
-  a.ptr += state->device->lpVtbl->GetDescriptorHandleIncrementSize(state->device, D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
-  state->list->lpVtbl->SetGraphicsRootDescriptorTable(state->list, 2, a);
-
-  // TODO end debug
-}
-
-void DXPrepareFrame(DX12STATE *state) {
-  UDWORD frame = state->swapchain->lpVtbl->GetCurrentBackBufferIndex(state->swapchain);
-
-  D3D12_VIEWPORT viewport = {0, 0, WINDOW_WIDTH, WINDOW_HEIGHT};
-  state->list->lpVtbl->RSSetViewports(state->list, 1, &viewport);
-
-  D3D12_RECT scissor = {0, 0, WINDOW_WIDTH, WINDOW_HEIGHT};
-  state->list->lpVtbl->RSSetScissorRects(state->list, 1, &scissor);
-
-  D3D12_RESOURCE_BARRIER rb = {0};
-  rb.Transition.pResource = state->rendertargets[frame];
-  rb.Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
-  rb.Transition.StateAfter = D3D12_RESOURCE_STATE_RENDER_TARGET;
-  state->list->lpVtbl->ResourceBarrier(state->list, 1, &rb);
-
-  D3D12_CPU_DESCRIPTOR_HANDLE cpudescriptor = DXGetCPUDescriptorHandleForHeapStart(state->rendertargetviewdescriptorheap);
-  cpudescriptor.ptr += frame * state->device->lpVtbl->GetDescriptorHandleIncrementSize(state->device, D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
-  D3D12_CPU_DESCRIPTOR_HANDLE dsvdescriptor = DXGetCPUDescriptorHandleForHeapStart(state->depthstencilviewheap); 
-  state->list->lpVtbl->OMSetRenderTargets(state->list, 1, &cpudescriptor, 0, &dsvdescriptor);
-
-  state->list->lpVtbl->ClearRenderTargetView(state->list, cpudescriptor, (float[4]) {1.0f, 1.0f, 1.0f, 1.0f}, 0, 0);
-  state->list->lpVtbl->ClearDepthStencilView(state->list, DXGetCPUDescriptorHandleForHeapStart(state->depthstencilviewheap), D3D12_CLEAR_FLAG_DEPTH, 1.0f, 0, 0, 0);
-}
-
-void DXFlushFrame(DX12STATE *state) {
-  UDWORD frame = state->swapchain->lpVtbl->GetCurrentBackBufferIndex(state->swapchain);
-
-  D3D12_RESOURCE_BARRIER rb = {0};
-  rb.Transition.pResource = state->rendertargets[frame];
-  rb.Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
-  rb.Transition.StateBefore = D3D12_RESOURCE_STATE_RENDER_TARGET;
-  rb.Transition.StateAfter = D3D12_RESOURCE_STATE_PRESENT;
-  state->list->lpVtbl->ResourceBarrier(state->list, 1, &rb);
-    
-  state->list->lpVtbl->Close(state->list);
-  state->queue->lpVtbl->ExecuteCommandLists(state->queue, 1, (ID3D12CommandList **)&state->list);
-  DXWaitForFence(state);
-  state->swapchain->lpVtbl->Present(state->swapchain, 1, 0);
 }
 
 DX12BUFFER DXCreateAndUploadBuffer(DX12STATE *state, ID3D12Heap *heap, ID3D12Heap *uploadheap, void *data, UQWORD sizeinbytes, UQWORD offsetinbytes, D3D12_RESOURCE_STATES prevstate) {
@@ -319,12 +273,14 @@ DX12BUFFER DXCreateAndUploadBuffer(DX12STATE *state, ID3D12Heap *heap, ID3D12Hea
   rb.Transition.StateAfter = prevstate;
   state->list->lpVtbl->ResourceBarrier(state->list, 1, &rb);
 
+  // Return
   return buffer;
 }
 
 DX12VERTEXBUFFER DXCreateAndUploadVertexBuffer(DX12STATE *state, ID3D12Heap *heap, ID3D12Heap *uploadheap, void *data, UQWORD sizeinbytes, UQWORD offsetinbytes) {
   DX12VERTEXBUFFER vertexbuffer = {0};
   
+  // Create upload buffer and normal buffer
   DX12BUFFER buffer = DXCreateAndUploadBuffer(state, heap, uploadheap, data, sizeinbytes, offsetinbytes, D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER);
 
   vertexbuffer.buffer = buffer.buffer;
@@ -342,6 +298,7 @@ DX12VERTEXBUFFER DXCreateAndUploadVertexBuffer(DX12STATE *state, ID3D12Heap *hea
 DX12INDEXBUFFER DXCreateAndUploadIndexBuffer(DX12STATE *state, ID3D12Heap *heap, ID3D12Heap *uploadheap, void *data, UQWORD sizeinbytes, UQWORD offsetinbytes, DXGI_FORMAT format) {
   DX12INDEXBUFFER indexbuffer = {0};
 
+  // Create upload buffer and normal buffer
   DX12BUFFER buffer = DXCreateAndUploadBuffer(state, heap, uploadheap, data, sizeinbytes, offsetinbytes, D3D12_RESOURCE_STATE_INDEX_BUFFER);
 
   indexbuffer.buffer = buffer.buffer;
@@ -354,4 +311,75 @@ DX12INDEXBUFFER DXCreateAndUploadIndexBuffer(DX12STATE *state, ID3D12Heap *heap,
 
   // Return
   return indexbuffer;
+}
+
+DX12TEXTURE DXCreateAndUploadTexture(DX12STATE *state, UDWORD width, UDWORD height, ID3D12Heap *heap, ID3D12Heap *uploadheap, void *data, UQWORD offsetinbytes) {
+  DX12TEXTURE texture = {0};
+  
+  // Reserve memory for the resource on the heap
+  D3D12_RESOURCE_DESC resourcedesc = {0};
+  resourcedesc.Dimension = D3D12_RESOURCE_DIMENSION_TEXTURE2D;
+  resourcedesc.Width = width;
+  resourcedesc.Height = height;
+  resourcedesc.DepthOrArraySize = 1;
+  resourcedesc.MipLevels = 1;
+  resourcedesc.SampleDesc.Count = 1;
+  resourcedesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
+
+  state->device->lpVtbl->CreatePlacedResource(state->device, heap, offsetinbytes, &resourcedesc, D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE | D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, 0, &IID_ID3D12Resource, &texture.texture);
+
+  // Reserve memory for the resource on the upload heap using same variable
+  resourcedesc.Dimension = D3D12_RESOURCE_DIMENSION_BUFFER;
+  resourcedesc.Width = AlignUp(width, 256) * height * 4;
+  resourcedesc.Height = 1;
+  resourcedesc.Format = DXGI_FORMAT_UNKNOWN;
+  resourcedesc.Layout = D3D12_TEXTURE_LAYOUT_ROW_MAJOR;
+  state->device->lpVtbl->CreatePlacedResource(state->device, uploadheap, offsetinbytes, &resourcedesc, D3D12_RESOURCE_STATE_GENERIC_READ, 0, &IID_ID3D12Resource, &texture.uploadtexture);
+
+  // Get pointer to upload resource
+  void *ptr;
+  D3D12_RANGE range = {0};
+  texture.uploadtexture->lpVtbl->Map(texture.uploadtexture, 0, &range, &ptr);
+
+  // Fill out structures to copy the upload resource to the actual texture resource (used later)
+  D3D12_TEXTURE_COPY_LOCATION dst = {0};
+  dst.pResource = texture.texture;
+
+  D3D12_TEXTURE_COPY_LOCATION src = {0};
+  src.pResource = texture.uploadtexture;
+  src.Type = D3D12_TEXTURE_COPY_TYPE_PLACED_FOOTPRINT;
+  src.PlacedFootprint.Footprint.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
+  src.PlacedFootprint.Footprint.Width = width;
+  src.PlacedFootprint.Footprint.Height = height;
+  src.PlacedFootprint.Footprint.Depth = 1;
+  src.PlacedFootprint.Footprint.RowPitch = AlignUp(width * 4, 256);
+  src.PlacedFootprint.Offset = AlignUp((UQWORD)ptr, 512) - (UQWORD)ptr;
+
+  // Copy memory from RAM to the upload resource
+  for (UDWORD i = 0; i < height; i++) {
+    void *srcptr = (void *)((UQWORD)data + (UQWORD)(width * i * 4));
+    void *destptr = (void *)((UQWORD)ptr + src.PlacedFootprint.Offset + (UQWORD)(src.PlacedFootprint.Footprint.RowPitch * i));
+    CopyMemory(destptr, srcptr, width * 4);
+  }
+
+  // Unmap upload resource
+  texture.uploadtexture->lpVtbl->Unmap(texture.uploadtexture, 0, 0);
+
+  // Change resource state and copy memory from upload resource to texture using structure filled out above
+  D3D12_RESOURCE_BARRIER rb = {0};
+  rb.Transition.pResource = texture.texture;
+  rb.Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
+  rb.Transition.StateBefore = D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE | D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE;
+  rb.Transition.StateAfter = D3D12_RESOURCE_STATE_COPY_DEST;
+  state->list->lpVtbl->ResourceBarrier(state->list, 1, &rb);
+
+  state->list->lpVtbl->CopyTextureRegion(state->list, &dst, 0, 0, 0, &src, 0);
+
+  // Change state back to shader resource
+  rb.Transition.StateBefore = D3D12_RESOURCE_STATE_COPY_DEST;
+  rb.Transition.StateAfter = D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE | D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE;
+  state->list->lpVtbl->ResourceBarrier(state->list, 1, &rb);
+
+  // Return
+  return texture;
 }

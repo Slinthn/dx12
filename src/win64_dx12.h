@@ -25,6 +25,10 @@ typedef struct {
 } HEAP1;
 
 typedef struct {
+  ID3D12Resource *texture, *uploadtexture;
+} DX12TEXTURE;
+
+typedef struct {
   IDXGIAdapter *adapter;
   ID3D12Device *device;
   ID3D12CommandQueue *queue;
@@ -34,8 +38,6 @@ typedef struct {
   ID3D12CommandAllocator *allocator;
   ID3D12GraphicsCommandList *list;
   ID3D12Fence *fence;
-  HANDLE fenceevent;
-  UQWORD fencevalue;
   ID3D12DescriptorHeap *depthstencilviewheap;
   ID3D12DescriptorHeap *samplerheap; // TODO debug
   

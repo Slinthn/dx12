@@ -7,5 +7,4 @@ SamplerState s0 : register(s0);
 float4 main(PSINPUT input) : SV_TARGET {
   float2 pos = float2(input.tex.x, 1 + input.tex.y);
   return t0.Sample(s0, pos);
-  //return float4(input.normal, 1);
 }

@@ -59,7 +59,9 @@ cbuffer CB1 : register(b1) {
 PSINPUT main(float3 position : POSITION, float3 normal : NORMAL, float2 tex : TEXTURE) {
   PSINPUT ret;
   VERTEXDATA data = vertexdata[offset];
-  ret.position = mul(mul(mul(float4(position, 1), data.transform), inverse(data.camera)), data.perspective);
+  ret.position = mul(float4(position, 1.0f), data.transform);
+  ret.position = mul(ret.position, inverse(data.camera));
+  ret.position = mul(ret.position, data.perspective);
   ret.normal = normal;
   ret.tex = tex;
   return ret;

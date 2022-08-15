@@ -1,0 +1,8 @@
+#include "win64_resources.h"
+
+IMAGE PNG "res/texture1.png"
+
+SHADER_VERTEX HLSL "bin/x64/Debug/defaultv.cso" // TODO change to better path
+SHADER_PIXEL HLSL "bin/x64/Debug/defaultp.cso" // TODO change
+
+CHAO MODEL "res/chao.gltf"
