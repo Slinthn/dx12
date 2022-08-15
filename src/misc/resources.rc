@@ -1,9 +1,0 @@
-#include "../header/win64_resources.h"
-
-DEFAULT_VERTEX VERTEXSHADER "default_vertex.cso"
-DEFAULT_PIXEL PIXELSHADER "default_pixel.cso"
-
-WALL MODEL "wall.sm"
-FLOOR MODEL "floor.sm"
-
-WORLD1 WORLD "world.sw"
