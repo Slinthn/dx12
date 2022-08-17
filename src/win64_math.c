@@ -22,12 +22,15 @@ void MPerspective(MATRIX *m, float aspectratio, float fov, float nearz, float fa
   (*m)[15] = 0;
 }
 
-void MTransform(MATRIX *m, float tx, float ty, float tz, float rx, float ry, float rz) {
+void MTransform(MATRIX *m, float tx, float ty, float tz, float rx, float ry, float rz, float sx, float sy, float sz) {
   MIdentity(m);
+
+  // Apply transformation
   (*m)[3] = tx;
   (*m)[7] = ty;
   (*m)[11] = tz;
 
+  // Apply rotation
   float srx = sinf(rx);
   float crx = cosf(rx);
   float sry = sinf(ry);
@@ -44,11 +47,28 @@ void MTransform(MATRIX *m, float tx, float ty, float tz, float rx, float ry, flo
   (*m)[8] = -sry;
   (*m)[9] = cry * srx;
   (*m)[10] = cry * crx;
+
+  // Apply scaling
+  (*m)[0] *= sx;
+  (*m)[1] *= sy;
+  (*m)[2] *= sz;
+  (*m)[4] *= sx;
+  (*m)[5] *= sy;
+  (*m)[6] *= sz;
+  (*m)[8] *= sx;
+  (*m)[9] *= sy;
+  (*m)[10] *= sz;
 }
 
 void VECCopy2f(VECTOR2F *vec, VECTOR2F from) {
   (*vec)[0] = from[0];
   (*vec)[1] = from[1];
+}
+
+void VECCopy3f(VECTOR2F *vec, VECTOR2F from) {
+  (*vec)[0] = from[0];
+  (*vec)[1] = from[1];
+  (*vec)[2] = from[2];
 }
 
 void VECMul2f(VECTOR2F *vec, VECTOR2F mul) {

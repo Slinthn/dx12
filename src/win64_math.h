@@ -8,4 +8,5 @@ typedef float VECTOR3F[3];
 typedef struct {
   VECTOR3F position;
   VECTOR3F rotation;
+  VECTOR3F scale;
 } TRANSFORM;

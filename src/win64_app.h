@@ -14,19 +14,19 @@ typedef struct {
 
 typedef struct {
   UWORD modelid;
-  UWORD textureid; // TODO
-  VECTOR3F position;
-  VECTOR3F rotation;
-} SWOBJECT;
-
-typedef struct {
-  UWORD modelid;
   UBYTE unused0[6];
   DX12VERTEXBUFFER vertexbuffer;
+  DX12VERTEXBUFFER texturebuffer;
+  DX12VERTEXBUFFER normalbuffer;
   DX12INDEXBUFFER indexbuffer;
   UDWORD facecount;
   UBYTE unused1[4];
 } WINMODEL;
+
+typedef struct {
+  WINMODEL *model;
+  TRANSFORM transform;
+} WORLDOBJECT;
 
 typedef struct {
   DX12STATE dxstate;
@@ -35,4 +35,5 @@ typedef struct {
   UBYTE unused0[4];
   DXSHADER shader;
   WINMODEL models[100]; // TODO 100 max.
+  WORLDOBJECT objects[100];
 } WINSTATE;

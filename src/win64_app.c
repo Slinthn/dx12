@@ -53,6 +53,9 @@ LRESULT WMessageProc(HWND window, UINT msg, WPARAM wparam, LPARAM lparam) {
 #include "win64_game.c"
 
 int APIENTRY WinMain(HINSTANCE instance, HINSTANCE prevInstance, LPSTR cmd, int show) {
+  // TODO is this a good idea
+  timeBeginPeriod(1);
+
   // Suppress unused parameter warnings
   (void)prevInstance;
   (void)cmd;
@@ -100,12 +103,15 @@ int APIENTRY WinMain(HINSTANCE instance, HINSTANCE prevInstance, LPSTR cmd, int 
     GameUpdate(&winstate);
 
     // Sleep if time is remaining
+    // TODO is Sleep() a good idea
     SDWORD tosleep;
     do {
       UQWORD newcounter;
       QueryPerformanceCounter((LARGE_INTEGER *)&newcounter);
       float delta = ((float)(newcounter - counter) / (float)frequency) * 1000.0f;
       tosleep = (int)floorf((1000.0f / 60.0f) - delta);
+      if (tosleep > 0)
+        Sleep(tosleep);
     } while (tosleep > 0);
 
     // Update counter

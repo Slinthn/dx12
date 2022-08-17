@@ -66,9 +66,9 @@ void RIParse(CONTROL *control, HRAWINPUT rawinput) {
     }
 
     control->move[0] = (ds4data->lx - 127.5f) / 127.5f;
-    control->move[1] = -(ds4data->ly - 127.5f) / 127.5f;
+    control->move[1] = (ds4data->ly - 127.5f) / 127.5f;
     control->look[0] = (ds4data->rx - 127.5f) / 127.5f;
-    control->look[1] = -(ds4data->ry - 127.5f) / 127.5f;
+    control->look[1] = (ds4data->ry - 127.5f) / 127.5f;
   } break;
   }
 

@@ -29,6 +29,10 @@ typedef struct {
 } DX12TEXTURE;
 
 typedef struct {
+  ID3D12DescriptorHeap *heap;
+} DX12SAMPLER;
+
+typedef struct {
   IDXGIAdapter *adapter;
   ID3D12Device *device;
   ID3D12CommandQueue *queue;
@@ -39,7 +43,7 @@ typedef struct {
   ID3D12GraphicsCommandList *list;
   ID3D12Fence *fence;
   ID3D12DescriptorHeap *depthstencilviewheap;
-  ID3D12DescriptorHeap *samplerheap; // TODO debug
+  DX12SAMPLER sampler;
   
   HEAP0 heap0;
   HEAP1 heap1;

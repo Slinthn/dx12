@@ -108,7 +108,7 @@ DX12STATE DXInit(HWND window) {
 
   factory->lpVtbl->CreateSwapChainForHwnd(factory, (IUnknown *)state.queue, window, &swapchaindesc, 0, 0, (IDXGISwapChain1 **)&state.swapchain);
 
-  // Create renter target view descriptor descriptorheap
+  // Create renter target view descriptor heap
   D3D12_DESCRIPTOR_HEAP_DESC descriptorheapdesc = {0};
   descriptorheapdesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_RTV;
   descriptorheapdesc.NumDescriptors = 2;
@@ -125,7 +125,7 @@ DX12STATE DXInit(HWND window) {
     cpudescriptor.ptr += rtvDescriptorSize;
   }
 
-  // Create depth stencil descriptor descriptorheap
+  // Create depth stencil descriptor heap
   descriptorheapdesc = (D3D12_DESCRIPTOR_HEAP_DESC){0};
   descriptorheapdesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_DSV;
   descriptorheapdesc.NumDescriptors = 1;
@@ -166,7 +166,7 @@ DX12STATE DXInit(HWND window) {
   return state;
 }
 
-DXSHADER DXCreateShader(DX12STATE *state, void *vcode, UDWORD vsize, void *pcode, UDWORD psize, D3D12_INPUT_ELEMENT_DESC ieds[], UDWORD iedcount) {
+DXSHADER DXCreateShader(DX12STATE *state, void *vcode, UDWORD vsize, void *pcode, UDWORD psize, D3D12_INPUT_LAYOUT_DESC inputlayoutdesc) {
   DXSHADER shader = {0};
 
   // Create root signature from vertex shader
@@ -193,8 +193,7 @@ DXSHADER DXCreateShader(DX12STATE *state, void *vcode, UDWORD vsize, void *pcode
   gpsd.DepthStencilState.DepthFunc = D3D12_COMPARISON_FUNC_LESS;
   gpsd.DepthStencilState.FrontFace = (D3D12_DEPTH_STENCILOP_DESC){D3D12_STENCIL_OP_KEEP, D3D12_STENCIL_OP_KEEP, D3D12_STENCIL_OP_KEEP, D3D12_COMPARISON_FUNC_ALWAYS};
   gpsd.DepthStencilState.BackFace = (D3D12_DEPTH_STENCILOP_DESC){D3D12_STENCIL_OP_KEEP, D3D12_STENCIL_OP_KEEP, D3D12_STENCIL_OP_KEEP, D3D12_COMPARISON_FUNC_ALWAYS};
-  gpsd.InputLayout.pInputElementDescs = ieds;
-  gpsd.InputLayout.NumElements = iedcount;
+  gpsd.InputLayout = inputlayoutdesc;
   gpsd.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
   gpsd.NumRenderTargets = 1;
   gpsd.RTVFormats[0] = DXGI_FORMAT_R8G8B8A8_UNORM;
@@ -213,7 +212,7 @@ DXSHADER DXCreateShader(DX12STATE *state, void *vcode, UDWORD vsize, void *pcode
 ID3D12Heap *DXCreateHeap(DX12STATE *state, UQWORD sizeinbytes, D3D12_HEAP_TYPE type) {
   // Create heap and align to 64KB
   D3D12_HEAP_DESC heapdesc = {0};
-  heapdesc.SizeInBytes = sizeinbytes - (sizeinbytes % (64 * 1024)) + (64 * 1024);
+  heapdesc.SizeInBytes = AlignUp(sizeinbytes, 1024 * 64);
   heapdesc.Properties.Type = type;
 
   ID3D12Heap *heap;
@@ -277,7 +276,7 @@ DX12BUFFER DXCreateAndUploadBuffer(DX12STATE *state, ID3D12Heap *heap, ID3D12Hea
   return buffer;
 }
 
-DX12VERTEXBUFFER DXCreateAndUploadVertexBuffer(DX12STATE *state, ID3D12Heap *heap, ID3D12Heap *uploadheap, void *data, UQWORD sizeinbytes, UQWORD offsetinbytes) {
+DX12VERTEXBUFFER DXCreateAndUploadVertexBuffer(DX12STATE *state, ID3D12Heap *heap, ID3D12Heap *uploadheap, void *data, UQWORD sizeinbytes, UQWORD offsetinbytes, UDWORD strideinbytes) {
   DX12VERTEXBUFFER vertexbuffer = {0};
   
   // Create upload buffer and normal buffer
@@ -288,7 +287,7 @@ DX12VERTEXBUFFER DXCreateAndUploadVertexBuffer(DX12STATE *state, ID3D12Heap *hea
 
   // Setup vertex buffer view
   vertexbuffer.view.BufferLocation = buffer.buffer->lpVtbl->GetGPUVirtualAddress(buffer.buffer);
-  vertexbuffer.view.StrideInBytes = sizeof(VERTEX);
+  vertexbuffer.view.StrideInBytes = strideinbytes;
   vertexbuffer.view.SizeInBytes = (UDWORD)sizeinbytes;
 
   // Return
@@ -382,4 +381,29 @@ DX12TEXTURE DXCreateAndUploadTexture(DX12STATE *state, UDWORD width, UDWORD heig
 
   // Return
   return texture;
+}
+
+DX12SAMPLER DXCreateSampler(DX12STATE *state) {
+  DX12SAMPLER sampler = {0};
+
+  // Create descriptor heap
+  D3D12_DESCRIPTOR_HEAP_DESC samplerHeapDesc = {0};
+  samplerHeapDesc.NumDescriptors = 1;
+  samplerHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER;
+  samplerHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
+
+  state->device->lpVtbl->CreateDescriptorHeap(state->device, &samplerHeapDesc, &IID_ID3D12DescriptorHeap, &sampler.heap);
+
+  // Create sampler
+  D3D12_SAMPLER_DESC samplerdesc = {0};
+  samplerdesc.Filter = D3D12_FILTER_MIN_POINT_MAG_MIP_LINEAR;
+  samplerdesc.AddressU = samplerdesc.AddressV = samplerdesc.AddressW = D3D12_TEXTURE_ADDRESS_MODE_BORDER;
+  samplerdesc.MaxLOD = D3D12_FLOAT32_MAX;
+  samplerdesc.MaxAnisotropy = 1;
+  samplerdesc.ComparisonFunc = D3D12_COMPARISON_FUNC_ALWAYS;
+
+  state->device->lpVtbl->CreateSampler(state->device, &samplerdesc, DXGetCPUDescriptorHandleForHeapStart(sampler.heap));
+
+  // Return
+  return sampler;
 }
