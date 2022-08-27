@@ -1,4 +1,4 @@
-#define ACTION_INTERACT 0x1
+#define ACTION_JUMP 0x1
 #define ACTION_DESCEND 0x2
 #define ACTION_ASCEND 0x4
 

@@ -5,6 +5,8 @@
 
 #define SizeofArray(x) (sizeof(x) / sizeof((x)[0]))
 
+#define FATAL_ERROR(message) { MessageBoxA(0, message, "FATAL ERROR", MB_ICONERROR); ExitProcess(0); }
+
 typedef signed char SBYTE;
 typedef unsigned char UBYTE;
 typedef signed short SWORD;

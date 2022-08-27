@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <Project DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <Import Project="packages\Microsoft.Windows.CppWinRT.2.0.210806.1\build\native\Microsoft.Windows.CppWinRT.props" Condition="Exists('packages\Microsoft.Windows.CppWinRT.2.0.210806.1\build\native\Microsoft.Windows.CppWinRT.props')" />
   <ItemGroup Label="ProjectConfigurations">
     <ProjectConfiguration Include="Debug|Win32">
       <Configuration>Debug</Configuration>
@@ -153,24 +154,25 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <None Include="packages.config" />
     <None Include="res\chao.gltf" />
-    <None Include="src\default.hlsli" />
+    <None Include="src\hlsl\default.hlsli" />
   </ItemGroup>
   <ItemGroup>
     <None Include="src\cgltf.h" />
     <None Include="src\stb_image.h" />
-    <None Include="src\win64_app.h" />
-    <None Include="src\win64_dx12.h" />
-    <None Include="src\win64_math.h" />
-    <None Include="src\win64_rawinput.h" />
-    <None Include="src\win64_resources.h" />
-    <None Include="src\win64_types.h" />
+    <None Include="src\app.h" />
+    <None Include="src\dx12.h" />
+    <None Include="src\math\math.h" />
+    <None Include="src\rawinput.h" />
+    <None Include="src\resources.h" />
+    <None Include="src\types.h" />
   </ItemGroup>
   <ItemGroup>
     <Image Include="res\texture1.png" />
   </ItemGroup>
   <ItemGroup>
-    <FxCompile Include="src\defaultp.hlsl">
+    <FxCompile Include="src\hlsl\defaultp.hlsl">
       <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">6.2</ShaderModel>
       <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">6.2</ShaderModel>
       <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">6.2</ShaderModel>
@@ -180,7 +182,7 @@
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Pixel</ShaderType>
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Pixel</ShaderType>
     </FxCompile>
-    <FxCompile Include="src\defaultv.hlsl">
+    <FxCompile Include="src\hlsl\defaultv.hlsl">
       <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">6.2</ShaderModel>
       <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">6.2</ShaderModel>
       <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">6.2</ShaderModel>
@@ -195,26 +197,46 @@
     <ResourceCompile Include="src\resources.rc" />
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="src\win64_app.c">
+    <ClCompile Include="src\app.c">
       <FileType>CppCode</FileType>
     </ClCompile>
-    <None Include="src\win64_dx12.c">
+    <None Include="src\math\vector4f.c">
       <FileType>CppCode</FileType>
     </None>
-    <None Include="src\win64_game.c">
+    <None Include="src\math\vector2f.c">
       <FileType>CppCode</FileType>
     </None>
-    <None Include="src\win64_math.c">
+    <None Include="src\math\vector3f.c">
       <FileType>CppCode</FileType>
     </None>
-    <None Include="src\win64_rawinput.c">
+    <None Include="src\math\matrix4f.c">
       <FileType>CppCode</FileType>
     </None>
-    <None Include="src\win64_resource.c">
+    <None Include="src\dx12.c">
+      <FileType>CppCode</FileType>
+    </None>
+    <None Include="src\game.c">
+      <FileType>CppCode</FileType>
+    </None>
+    <None Include="src\math\math.c">
+      <FileType>CppCode</FileType>
+    </None>
+    <None Include="src\rawinput.c">
+      <FileType>CppCode</FileType>
+    </None>
+    <None Include="src\resource.c">
       <FileType>CppCode</FileType>
     </None>
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
+    <Import Project="packages\Microsoft.Windows.CppWinRT.2.0.210806.1\build\native\Microsoft.Windows.CppWinRT.targets" Condition="Exists('packages\Microsoft.Windows.CppWinRT.2.0.210806.1\build\native\Microsoft.Windows.CppWinRT.targets')" />
   </ImportGroup>
+  <Target Name="EnsureNuGetPackageBuildImports" BeforeTargets="PrepareForBuild">
+    <PropertyGroup>
+      <ErrorText>This project references NuGet package(s) that are missing on this computer. Use NuGet Package Restore to download them.  For more information, see http://go.microsoft.com/fwlink/?LinkID=322105. The missing file is {0}.</ErrorText>
+    </PropertyGroup>
+    <Error Condition="!Exists('packages\Microsoft.Windows.CppWinRT.2.0.210806.1\build\native\Microsoft.Windows.CppWinRT.props')" Text="$([System.String]::Format('$(ErrorText)', 'packages\Microsoft.Windows.CppWinRT.2.0.210806.1\build\native\Microsoft.Windows.CppWinRT.props'))" />
+    <Error Condition="!Exists('packages\Microsoft.Windows.CppWinRT.2.0.210806.1\build\native\Microsoft.Windows.CppWinRT.targets')" Text="$([System.String]::Format('$(ErrorText)', 'packages\Microsoft.Windows.CppWinRT.2.0.210806.1\build\native\Microsoft.Windows.CppWinRT.targets'))" />
+  </Target>
 </Project>

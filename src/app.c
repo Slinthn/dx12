@@ -11,17 +11,18 @@
 #include "cgltf.h"
 #pragma warning(pop)
 
-#include "win64_types.h"
-#include "win64_math.h"
-#include "win64_dx12.h"
-#include "win64_rawinput.h"
-#include "win64_app.h"
-#include "win64_resources.h"
+#include "types.h"
+#include "math/math.h"
+#include "dx12.h"
+#include "rawinput.h"
+#include "app.h"
+#include "resources.h"
 
-#include "win64_math.c"
-#include "win64_rawinput.c"
-#include "win64_dx12.c"
-#include "win64_resource.c"
+#include "math/math.c"
+#include "rawinput.c"
+#include "dx12.c"
+#include "resource.c"
+#include "game.c"
 
 LRESULT WMessageProc(HWND window, UINT msg, WPARAM wparam, LPARAM lparam) {
   // Get windows state
@@ -50,17 +51,15 @@ LRESULT WMessageProc(HWND window, UINT msg, WPARAM wparam, LPARAM lparam) {
   return DefWindowProcA(window, msg, wparam, lparam);
 }
 
-#include "win64_game.c"
-
 int APIENTRY WinMain(HINSTANCE instance, HINSTANCE prevInstance, LPSTR cmd, int show) {
-  // TODO is this a good idea
-  timeBeginPeriod(1);
-
   // Suppress unused parameter warnings
   (void)prevInstance;
   (void)cmd;
   (void)show;
   
+  // TODO is this a good idea
+  timeBeginPeriod(1);
+
   // Create a windows state variable
   WINSTATE winstate = {0};
 
@@ -109,7 +108,7 @@ int APIENTRY WinMain(HINSTANCE instance, HINSTANCE prevInstance, LPSTR cmd, int 
       UQWORD newcounter;
       QueryPerformanceCounter((LARGE_INTEGER *)&newcounter);
       float delta = ((float)(newcounter - counter) / (float)frequency) * 1000.0f;
-      tosleep = (int)floorf((1000.0f / 60.0f) - delta);
+      tosleep = (SDWORD)floorf((1000.0f / 60.0f) - delta);
       if (tosleep > 0)
         Sleep(tosleep);
     } while (tosleep > 0);

@@ -1,4 +1,4 @@
-#include "win64_resources.h"
+#include "resources.h"
 
 IMAGE PNG "res/texture1.png"
 

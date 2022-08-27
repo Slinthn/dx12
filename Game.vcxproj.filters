@@ -15,72 +15,59 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="header\cgltf.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="header\stb_image.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="header\win64_app.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="header\win64_dx12.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="header\win64_math.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="header\win64_rawinput.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="header\win64_resources.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="header\win64_types.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-  </ItemGroup>
-  <ItemGroup>
     <None Include="res\chao.gltf" />
-    <None Include="src\default.hlsli" />
-    <None Include="src\win64_types.h">
+    <None Include="src\hlsl\default.hlsli" />
+    <None Include="src\types.h">
       <Filter>Header Files</Filter>
     </None>
     <None Include="src\stb_image.h">
       <Filter>Header Files</Filter>
     </None>
-    <None Include="src\win64_app.h">
+    <None Include="src\app.h">
       <Filter>Header Files</Filter>
     </None>
-    <None Include="src\win64_dx12.c">
+    <None Include="src\dx12.c">
       <Filter>Source Files</Filter>
     </None>
-    <None Include="src\win64_dx12.h">
+    <None Include="src\dx12.h">
       <Filter>Header Files</Filter>
     </None>
-    <None Include="src\win64_game.c">
+    <None Include="src\game.c">
       <Filter>Source Files</Filter>
     </None>
-    <None Include="src\win64_math.c">
+    <None Include="src\math\math.c">
       <Filter>Source Files</Filter>
     </None>
-    <None Include="src\win64_math.h">
+    <None Include="src\math\math.h">
       <Filter>Header Files</Filter>
     </None>
-    <None Include="src\win64_rawinput.c">
+    <None Include="src\rawinput.c">
       <Filter>Source Files</Filter>
     </None>
-    <None Include="src\win64_rawinput.h">
+    <None Include="src\rawinput.h">
       <Filter>Header Files</Filter>
     </None>
-    <None Include="src\win64_resource.c">
+    <None Include="src\resource.c">
       <Filter>Source Files</Filter>
     </None>
-    <None Include="src\win64_resources.h">
+    <None Include="src\resources.h">
       <Filter>Header Files</Filter>
     </None>
     <None Include="src\cgltf.h">
       <Filter>Header Files</Filter>
+    </None>
+    <None Include="packages.config" />
+    <None Include="src\math\matrix4f.c">
+      <Filter>Source Files</Filter>
+    </None>
+    <None Include="src\math\vector3f.c">
+      <Filter>Source Files</Filter>
+    </None>
+    <None Include="src\math\vector2f.c">
+      <Filter>Source Files</Filter>
+    </None>
+    <None Include="src\math\vector4f.c">
+      <Filter>Source Files</Filter>
     </None>
   </ItemGroup>
   <ItemGroup>
@@ -89,8 +76,8 @@
     </Image>
   </ItemGroup>
   <ItemGroup>
-    <FxCompile Include="src\defaultp.hlsl" />
-    <FxCompile Include="src\defaultv.hlsl" />
+    <FxCompile Include="src\hlsl\defaultp.hlsl" />
+    <FxCompile Include="src\hlsl\defaultv.hlsl" />
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="src\resources.rc">
@@ -98,7 +85,7 @@
     </ResourceCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="src\win64_app.c">
+    <ClCompile Include="src\app.c">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

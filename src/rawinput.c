@@ -54,7 +54,7 @@ void RIParse(CONTROL *control, HRAWINPUT rawinput) {
 
     control->actions = 0;
     if (ds4data->buttons & (1 << 5)) {
-      control->actions |= ACTION_INTERACT;
+      control->actions |= ACTION_JUMP;
     }
 
     if (ds4data->buttons & (1 << 10)) {

@@ -67,10 +67,11 @@ DX12STATE DXInit(HWND window) {
     }
   }
 
-  if (!state.device)
-    ExitProcess(5); // TODO exit code
+  if (!state.device) {
+    FATAL_ERROR("Failed to initialise DirectX 12.");
+  }
 
-  // Setup debugg logging
+  // Setup debug logging
 #ifdef _DEBUG
   ID3D12InfoQueue *infoqueue;
   state.device->lpVtbl->QueryInterface(state.device, &IID_ID3D12InfoQueue, &infoqueue);
@@ -143,7 +144,7 @@ DX12STATE DXInit(HWND window) {
   resourcedesc.Width = WINDOW_WIDTH;
   resourcedesc.Height = WINDOW_HEIGHT;
   resourcedesc.DepthOrArraySize = 1;
-  resourcedesc.MipLevels = 0; // TODO debug
+  resourcedesc.MipLevels = 0;
   resourcedesc.SampleDesc.Count = 1;
   resourcedesc.Format = DXGI_FORMAT_D32_FLOAT;
   resourcedesc.Flags = D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL;
@@ -166,8 +167,8 @@ DX12STATE DXInit(HWND window) {
   return state;
 }
 
-DXSHADER DXCreateShader(DX12STATE *state, void *vcode, UDWORD vsize, void *pcode, UDWORD psize, D3D12_INPUT_LAYOUT_DESC inputlayoutdesc) {
-  DXSHADER shader = {0};
+DX12SHADER DXCreateShader(DX12STATE *state, void *vcode, UDWORD vsize, void *pcode, UDWORD psize, D3D12_INPUT_LAYOUT_DESC inputlayoutdesc) {
+  DX12SHADER shader = {0};
 
   // Create root signature from vertex shader
   state->device->lpVtbl->CreateRootSignature(state->device, 0, vcode, vsize, &IID_ID3D12RootSignature, &shader.rootsignature);
@@ -181,12 +182,12 @@ DXSHADER DXCreateShader(DX12STATE *state, void *vcode, UDWORD vsize, void *pcode
   gpsd.PS.BytecodeLength = psize;
   gpsd.SampleMask = UINT_MAX;
   gpsd.RasterizerState.FillMode = D3D12_FILL_MODE_SOLID;
-  gpsd.RasterizerState.CullMode = D3D12_CULL_MODE_NONE ;//D3D12_CULL_MODE_BACK; // TODO this
-  gpsd.RasterizerState.FrontCounterClockwise = 0; // TODO this maybe
+  gpsd.RasterizerState.CullMode = D3D12_CULL_MODE_NONE; // TODO D3D12_CULL_MODE_BACK 
+  gpsd.RasterizerState.FrontCounterClockwise = 0;
   gpsd.RasterizerState.DepthBias = D3D12_DEFAULT_DEPTH_BIAS;
   gpsd.RasterizerState.DepthBiasClamp = D3D12_DEFAULT_DEPTH_BIAS_CLAMP;
   gpsd.RasterizerState.SlopeScaledDepthBias = D3D12_DEFAULT_SLOPE_SCALED_DEPTH_BIAS;
-  gpsd.RasterizerState.DepthClipEnable = 0; // TODO debyug
+  gpsd.RasterizerState.DepthClipEnable = 0;
   gpsd.RasterizerState.ConservativeRaster = D3D12_CONSERVATIVE_RASTERIZATION_MODE_OFF;
   gpsd.DepthStencilState.DepthEnable = 1;
   gpsd.DepthStencilState.DepthWriteMask = D3D12_DEPTH_WRITE_MASK_ALL;
