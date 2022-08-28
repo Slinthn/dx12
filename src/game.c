@@ -143,10 +143,6 @@ void GameInit(WINSTATE *winstate) {
 
     dxstate->device->lpVtbl->CreateShaderResourceView(dxstate->device, winstate->shaderdepthresource, &shaderresourceviewdesc, winstate->shadertexturehandle.cpuhandle);
   }
-
-  // TODO temp
-  VECCopy3f(&winstate->sun.scale, (VECTOR3F){1, 1, 1});
-  VECCopy3f(&winstate->player.transform.scale, (VECTOR3F){1, 1, 1});
 }
 
 void GameUpdate(WINSTATE *winstate) {

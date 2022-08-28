@@ -22,9 +22,10 @@ typedef struct t_CB0 {
 
 #pragma pack(push, 1)
 typedef struct t_CB2 {
-  MATRIX perspective;
+  MATRIX cameraperspective;
   MATRIX camera;
-  MATRIX sun;
+  MATRIX suncamera;
+  MATRIX sunperspective;
 } CB2;
 #pragma pack(pop)
 

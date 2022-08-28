@@ -5,7 +5,7 @@ VSOUT main(float3 position : POSITION, float3 normal : NORMAL, float2 tex : TEXT
   VSOUT ret;
   VERTEXDATA data = vertexdata[offset];
   ret.position = mul(float4(position, 1.0f), data.transform);
-  ret.position = mul(ret.position, camera);
-  ret.position = mul(ret.position, perspective);
+  ret.position = mul(ret.position, suncamera);
+  ret.position = mul(ret.position, sunperspective);
   return ret;
 }

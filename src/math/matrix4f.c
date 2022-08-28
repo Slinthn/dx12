@@ -22,6 +22,17 @@ void MPerspective(MATRIX *m, float aspectratio, float fov, float nearz, float fa
   (*m)[15] = 0;
 }
 
+void MOrthographic(MATRIX *m, float left, float right, float top, float bottom, float nearz, float farz) {
+  MIdentity(m);
+
+  (*m)[0] = 2 / (right - left);
+  (*m)[3] = -(right + left) / (right - left);
+  (*m)[5] = 2 / (top - bottom);
+  (*m)[7] = -(top + bottom) / (top - bottom);
+  (*m)[10] = 1 / (farz - nearz);
+  (*m)[11] = -(nearz) / (farz - nearz);
+}
+
 void MTransform(MATRIX *m, TRANSFORM transform) {
   MIdentity(m);
 

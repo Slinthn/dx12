@@ -36,9 +36,17 @@ void RenderWholeShebang(WINSTATE *winstate, UDWORD frame) {
   // Setup CB2  
   {
     CB2 cb2 = {0};
-    MPerspective(&cb2.perspective, (float)WINDOW_HEIGHT / (float)WINDOW_WIDTH, DegreesToRadians(100.0f), 0.1f, 100.0f);
-    MInverseTransform(&cb2.camera, winstate->player.transform);
 
+    VECCopy3f(&winstate->player.transform.scale, (VECTOR3F){1, 1, 1});
+    VECCopy3f(&winstate->sun.scale, (VECTOR3F){1, 1, 1});
+    VECCopy3f(&winstate->sun.position, (VECTOR3F){0, 50, 0});
+    VECCopy3f(&winstate->sun.rotation, (VECTOR3F){DegreesToRadians(90), 0, 0});
+    //VECCopy3f(&winstate->player.transform.position, (VECTOR3F){0, 2, 0});
+
+    MPerspective(&cb2.cameraperspective, WINDOW_HEIGHT / (float)WINDOW_WIDTH, DegreesToRadians(100.0f), 0.1f, 100.0f);
+    MInverseTransform(&cb2.camera, winstate->player.transform);
+    MOrthographic(&cb2.sunperspective, -100, 100, -100, 100, 0.1f, 100.0f);
+    MInverseTransform(&cb2.suncamera, winstate->sun);
 
     D3D12_RANGE range = {0};
     void *resourcedata;
@@ -170,8 +178,6 @@ void RenderWholeShebang(WINSTATE *winstate, UDWORD frame) {
     dxstate->list->lpVtbl->SetGraphicsRootDescriptorTable(dxstate->list, 0, winstate->heap0.constantbuffer0handle.gpuhandle);
     dxstate->list->lpVtbl->SetGraphicsRootDescriptorTable(dxstate->list, 4, winstate->heap0.constantbuffer2handle.gpuhandle);
     dxstate->list->lpVtbl->SetGraphicsRootDescriptorTable(dxstate->list, 3, winstate->shadertexturehandle.gpuhandle);
-
-
 
     // Render scene objects for the shader
     RenderWorld(winstate, TRUE);

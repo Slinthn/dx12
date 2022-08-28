@@ -13,7 +13,8 @@ cbuffer CB1 : register(b1) {
 };
 
 cbuffer CB2 : register(b2) {
-  float4x4 perspective;
+  float4x4 cameraperspective;
   float4x4 camera;
-  float4x4 sun;
+  float4x4 suncamera;
+  float4x4 sunperspective;
 };
