@@ -12,7 +12,7 @@ WINRESOURCE WINLoadResource(UDWORD name, UDWORD type) {
   return res;
 }
 
-WORLD LoadGLTF(WINSTATE *winstate, void *gltfdata, UQWORD sizeinbytes, D3D12_CPU_DESCRIPTOR_HANDLE cpudescriptorhandle, D3D12_GPU_DESCRIPTOR_HANDLE gpudescriptorhandle) {
+WORLD LoadGLTF(WINSTATE *winstate, void *gltfdata, UQWORD sizeinbytes, DX12DESCRIPTORHEAP *heap) {
   WORLD ret = {0};
 
   UQWORD indexoffset = 1; // Make the first entry in each array (objects, textures, etc) a null entry
@@ -25,12 +25,14 @@ WORLD LoadGLTF(WINSTATE *winstate, void *gltfdata, UQWORD sizeinbytes, D3D12_CPU
   cgltf_load_buffers(&options, bufdata, 0);
 
   UQWORD heaptotalsize = 0; // This variable is to store the size of the WHOLE allocated heap (to be used later when allocating memory for the heap)
+#if 1
+
   for (UDWORD i = 0; i < bufdata->meshes_count; i++) {
     // Get heap required size for models
-    cgltf_buffer_view* indexbuffer = bufdata->meshes[i].primitives->indices->buffer_view;
-    cgltf_buffer_view* vertexbuffer = bufdata->meshes[i].primitives->attributes[0].data->buffer_view;
-    cgltf_buffer_view* texturebuffer = bufdata->meshes[i].primitives->attributes[2].data->buffer_view;
-    cgltf_buffer_view* normalbuffer = bufdata->meshes[i].primitives->attributes[1].data->buffer_view;
+    cgltf_buffer_view *indexbuffer = bufdata->meshes[i].primitives->indices->buffer_view;
+    cgltf_buffer_view *vertexbuffer = bufdata->meshes[i].primitives->attributes[0].data->buffer_view;
+    cgltf_buffer_view *texturebuffer = bufdata->meshes[i].primitives->attributes[2].data->buffer_view;
+    cgltf_buffer_view *normalbuffer = bufdata->meshes[i].primitives->attributes[1].data->buffer_view;
 
     UQWORD vertexbufferoffset = 0;
     UQWORD texturebufferoffset = AlignUp(vertexbufferoffset + vertexbuffer->size, 1024 * 64);
@@ -38,6 +40,8 @@ WORLD LoadGLTF(WINSTATE *winstate, void *gltfdata, UQWORD sizeinbytes, D3D12_CPU
     UQWORD indexbufferoffset = AlignUp(normalbufferoffset + normalbuffer->size, 1024 * 64);
     heaptotalsize += AlignUp(indexbufferoffset + indexbuffer->size, 1024 * 64);
   }
+#endif // 0
+
 
   for (UDWORD i = 0; i < bufdata->textures_count; i++) {
     // Get heap required size for textures
@@ -46,7 +50,7 @@ WORLD LoadGLTF(WINSTATE *winstate, void *gltfdata, UQWORD sizeinbytes, D3D12_CPU
     SDWORD width, height, n;
     stbi_info_from_memory((void *)((UQWORD)bufferview->buffer->data + bufferview->offset), (SDWORD)bufferview->size, &width, &height, &n);
 
-    heaptotalsize += TrueImageSizeInBytes(width, height);
+    heaptotalsize += AlignUp(TrueImageSizeInBytes(width, height), 1024 * 64);
   }
 
   // Create normal heap and upload heap
@@ -55,12 +59,13 @@ WORLD LoadGLTF(WINSTATE *winstate, void *gltfdata, UQWORD sizeinbytes, D3D12_CPU
 
   UQWORD totalallocatedsize = 0; // This variable is to store the total size used up (so far) after each model is allocated.
                                  // This is in order to ensure the correct offset and no overlapping
+
   for (UDWORD i = 0; i < bufdata->meshes_count; i++) {
     // Calculate the starting byte of each asset in the descriptorheap, and hence the total size required
-    cgltf_buffer_view* indexbuffer = bufdata->meshes[i].primitives->indices->buffer_view;
-    cgltf_buffer_view* vertexbuffer = bufdata->meshes[i].primitives->attributes[0].data->buffer_view;
-    cgltf_buffer_view* texturebuffer = bufdata->meshes[i].primitives->attributes[2].data->buffer_view;
-    cgltf_buffer_view* normalbuffer = bufdata->meshes[i].primitives->attributes[1].data->buffer_view;
+    cgltf_buffer_view *indexbuffer = bufdata->meshes[i].primitives->indices->buffer_view;
+    cgltf_buffer_view *vertexbuffer = bufdata->meshes[i].primitives->attributes[0].data->buffer_view;
+    cgltf_buffer_view *texturebuffer = bufdata->meshes[i].primitives->attributes[2].data->buffer_view;
+    cgltf_buffer_view *normalbuffer = bufdata->meshes[i].primitives->attributes[1].data->buffer_view;
 
     UQWORD vertexbufferoffset = totalallocatedsize;
     UQWORD texturebufferoffset = AlignUp(vertexbufferoffset + vertexbuffer->size, 1024 * 64);
@@ -72,13 +77,13 @@ WORLD LoadGLTF(WINSTATE *winstate, void *gltfdata, UQWORD sizeinbytes, D3D12_CPU
     totalallocatedsize = totalsize;
 
     // Create vertex, texture, and normal buffers, and index buffer for model
-    ret.models[i + indexoffset].vertexbuffer = DXCreateAndUploadVertexBuffer(dxstate, ret.heap, ret.uploadheap, (void*)((UQWORD)vertexbuffer->buffer->data + (UQWORD)vertexbuffer->offset), vertexbuffer->size, vertexbufferoffset, 3 * sizeof(float));
+    ret.models[i + indexoffset].vertexbuffer = DXCreateAndUploadVertexBuffer(dxstate, ret.heap, ret.uploadheap, (void *)((UQWORD)vertexbuffer->buffer->data + (UQWORD)vertexbuffer->offset), vertexbuffer->size, vertexbufferoffset, 3 * sizeof(float));
 
-    ret.models[i + indexoffset].texturebuffer = DXCreateAndUploadVertexBuffer(dxstate, ret.heap, ret.uploadheap, (void*)((UQWORD)texturebuffer->buffer->data + (UQWORD)texturebuffer->offset), texturebuffer->size, texturebufferoffset, 2 * sizeof(float));
+    ret.models[i + indexoffset].texturebuffer = DXCreateAndUploadVertexBuffer(dxstate, ret.heap, ret.uploadheap, (void *)((UQWORD)texturebuffer->buffer->data + (UQWORD)texturebuffer->offset), texturebuffer->size, texturebufferoffset, 2 * sizeof(float));
 
-    ret.models[i + indexoffset].normalbuffer = DXCreateAndUploadVertexBuffer(dxstate, ret.heap, ret.uploadheap, (void*)((UQWORD)normalbuffer->buffer->data + (UQWORD)normalbuffer->offset), normalbuffer->size, normalbufferoffset, 3 * sizeof(float));
+    ret.models[i + indexoffset].normalbuffer = DXCreateAndUploadVertexBuffer(dxstate, ret.heap, ret.uploadheap, (void *)((UQWORD)normalbuffer->buffer->data + (UQWORD)normalbuffer->offset), normalbuffer->size, normalbufferoffset, 3 * sizeof(float));
 
-    ret.models[i + indexoffset].indexbuffer = DXCreateAndUploadIndexBuffer(dxstate, ret.heap, ret.uploadheap, (void*)((UQWORD)indexbuffer->buffer->data + (UQWORD)indexbuffer->offset), indexbuffer->size, indexbufferoffset, DXGI_FORMAT_R16_UINT);
+    ret.models[i + indexoffset].indexbuffer = DXCreateAndUploadIndexBuffer(dxstate, ret.heap, ret.uploadheap, (void *)((UQWORD)indexbuffer->buffer->data + (UQWORD)indexbuffer->offset), indexbuffer->size, indexbufferoffset, DXGI_FORMAT_R16_UINT);
 
     ret.models[i + indexoffset].facecount = (UDWORD)indexbuffer->size / sizeof(UWORD) / 3;
 
@@ -116,18 +121,13 @@ WORLD LoadGLTF(WINSTATE *winstate, void *gltfdata, UQWORD sizeinbytes, D3D12_CPU
     srvdesc.Texture2D.MipLevels = 1;
 
     // Create temporary variables in order not to affect function parameter values
-    D3D12_CPU_DESCRIPTOR_HANDLE cpudescriptorhandletmp = cpudescriptorhandle;
-    D3D12_GPU_DESCRIPTOR_HANDLE gpudescriptorhandletmp = gpudescriptorhandle;
+    DX12DESCRIPTORHANDLE handle = DXGetNextUnusedHandle(dxstate, heap);
 
-    DWORD increment = dxstate->device->lpVtbl->GetDescriptorHandleIncrementSize(dxstate->device, D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV) * i; // Offset
-    cpudescriptorhandletmp.ptr += increment;
-    gpudescriptorhandletmp.ptr += increment;
-
-    dxstate->device->lpVtbl->CreateShaderResourceView(dxstate->device, texture.texture, &srvdesc, cpudescriptorhandletmp);
+    dxstate->device->lpVtbl->CreateShaderResourceView(dxstate->device, texture.texture, &srvdesc, handle.cpuhandle);
 
     totalallocatedsize += AlignUp(TrueImageSizeInBytes(width, height), 1024 * 64);
 
-    ret.texture[i + indexoffset].handle = gpudescriptorhandletmp;
+    ret.texture[i + indexoffset].handle = handle.gpuhandle;
   }
 
   // Free gltf data

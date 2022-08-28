@@ -131,7 +131,7 @@ DX12STATE DXInit(HWND window) {
   descriptorheapdesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_DSV;
   descriptorheapdesc.NumDescriptors = 1;
 
-  state.device->lpVtbl->CreateDescriptorHeap(state.device, &descriptorheapdesc, &IID_ID3D12DescriptorHeap, &state.depthstencilviewheap);
+  state.device->lpVtbl->CreateDescriptorHeap(state.device, &descriptorheapdesc, &IID_ID3D12DescriptorHeap, &state.depthstencilviewdescriptorheap);
 
   // Create buffer for the depth stencil
   D3D12_HEAP_PROPERTIES heapproperties = {0};
@@ -161,7 +161,7 @@ DX12STATE DXInit(HWND window) {
   depthstencilviewdesc.Format = DXGI_FORMAT_D32_FLOAT;
   depthstencilviewdesc.ViewDimension = D3D12_DSV_DIMENSION_TEXTURE2D;
 
-  state.device->lpVtbl->CreateDepthStencilView(state.device, depthstencilresource, &depthstencilviewdesc, DXGetCPUDescriptorHandleForHeapStart(state.depthstencilviewheap));
+  state.device->lpVtbl->CreateDepthStencilView(state.device, depthstencilresource, &depthstencilviewdesc, DXGetCPUDescriptorHandleForHeapStart(state.depthstencilviewdescriptorheap));
 
   // Return
   return state;
@@ -330,7 +330,7 @@ DX12TEXTURE DXCreateAndUploadTexture(DX12STATE *state, UDWORD width, UDWORD heig
 
   // Reserve memory for the resource on the upload heap using same variable
   resourcedesc.Dimension = D3D12_RESOURCE_DIMENSION_BUFFER;
-  resourcedesc.Width = AlignUp(width, 256) * height * 4;
+  resourcedesc.Width = TrueImageSizeInBytes(width, height);
   resourcedesc.Height = 1;
   resourcedesc.Format = DXGI_FORMAT_UNKNOWN;
   resourcedesc.Layout = D3D12_TEXTURE_LAYOUT_ROW_MAJOR;
@@ -408,3 +408,5 @@ DX12SAMPLER DXCreateSampler(DX12STATE *state) {
   // Return
   return sampler;
 }
+
+#include "descriptorheap.c"

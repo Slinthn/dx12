@@ -1,8 +1,8 @@
 #include "resources.h"
 
-IMAGE PNG "res/texture1.png"
+RESOURCE_DEFAULT_VERTEX RESOURCE_TYPE_HLSL "bin/x64/Debug/defaultv.cso" // TODO change to better path
+RESOURCE_DEFAULT_PIXEL RESOURCE_TYPE_HLSL "bin/x64/Debug/defaultp.cso" // TODO change
+RESOURCE_SHADER_VERTEX RESOURCE_TYPE_HLSL "bin/x64/Debug/shaderv.cso" // TODO change to better path
+RESOURCE_SHADER_PIXEL RESOURCE_TYPE_HLSL "bin/x64/Debug/shaderp.cso" // TODO change
 
-SHADER_VERTEX HLSL "bin/x64/Debug/defaultv.cso" // TODO change to better path
-SHADER_PIXEL HLSL "bin/x64/Debug/defaultp.cso" // TODO change
-
-CHAO MODEL "res/chao.gltf"
+RESOURCE_WORLD0 RESOURCE_TYPE_WORLD "res/world.gltf"

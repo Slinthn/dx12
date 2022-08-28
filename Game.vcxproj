@@ -24,34 +24,34 @@
     <Keyword>Win32Proj</Keyword>
     <ProjectGuid>{2f9f5ce3-f14c-4568-8218-a54f7fe1957a}</ProjectGuid>
     <RootNamespace>Game</RootNamespace>
-    <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
+    <WindowsTargetPlatformVersion>10.0.19041.0</WindowsTargetPlatformVersion>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
     <ConfigurationType>Application</ConfigurationType>
     <UseDebugLibraries>true</UseDebugLibraries>
-    <PlatformToolset>v143</PlatformToolset>
     <CharacterSet>Unicode</CharacterSet>
+    <PlatformToolset>v143</PlatformToolset>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
     <ConfigurationType>Application</ConfigurationType>
     <UseDebugLibraries>false</UseDebugLibraries>
-    <PlatformToolset>v143</PlatformToolset>
     <WholeProgramOptimization>true</WholeProgramOptimization>
     <CharacterSet>Unicode</CharacterSet>
+    <PlatformToolset>v143</PlatformToolset>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
     <ConfigurationType>Application</ConfigurationType>
     <UseDebugLibraries>true</UseDebugLibraries>
-    <PlatformToolset>v143</PlatformToolset>
     <CharacterSet>Unicode</CharacterSet>
+    <PlatformToolset>v143</PlatformToolset>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
     <ConfigurationType>Application</ConfigurationType>
     <UseDebugLibraries>false</UseDebugLibraries>
-    <PlatformToolset>v143</PlatformToolset>
     <WholeProgramOptimization>true</WholeProgramOptimization>
     <CharacterSet>Unicode</CharacterSet>
+    <PlatformToolset>v143</PlatformToolset>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
   <ImportGroup Label="ExtensionSettings">
@@ -155,21 +155,9 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <None Include="packages.config" />
-    <None Include="res\chao.gltf" />
+    <None Include="res\world.gltf" />
+    <None Include="src\hlsl\common.hlsli" />
     <None Include="src\hlsl\default.hlsli" />
-  </ItemGroup>
-  <ItemGroup>
-    <None Include="src\cgltf.h" />
-    <None Include="src\stb_image.h" />
-    <None Include="src\app.h" />
-    <None Include="src\dx12.h" />
-    <None Include="src\math\math.h" />
-    <None Include="src\rawinput.h" />
-    <None Include="src\resources.h" />
-    <None Include="src\types.h" />
-  </ItemGroup>
-  <ItemGroup>
-    <Image Include="res\texture1.png" />
   </ItemGroup>
   <ItemGroup>
     <FxCompile Include="src\hlsl\defaultp.hlsl">
@@ -181,6 +169,7 @@
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Pixel</ShaderType>
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Pixel</ShaderType>
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Pixel</ShaderType>
+      <AdditionalOptions Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">/Qembed_debug %(AdditionalOptions)</AdditionalOptions>
     </FxCompile>
     <FxCompile Include="src\hlsl\defaultv.hlsl">
       <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">6.2</ShaderModel>
@@ -191,42 +180,42 @@
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Vertex</ShaderType>
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Vertex</ShaderType>
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Vertex</ShaderType>
+      <AdditionalOptions Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">/Qembed_debug %(AdditionalOptions)</AdditionalOptions>
     </FxCompile>
-  </ItemGroup>
-  <ItemGroup>
-    <ResourceCompile Include="src\resources.rc" />
+    <FxCompile Include="src\hlsl\shaderv.hlsl">
+      <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">6.2</ShaderModel>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Vertex</ShaderType>
+      <AdditionalOptions Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">/Qembed_debug %(AdditionalOptions)</AdditionalOptions>
+    </FxCompile>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\app.c">
       <FileType>CppCode</FileType>
     </ClCompile>
-    <None Include="src\math\vector4f.c">
-      <FileType>CppCode</FileType>
-    </None>
-    <None Include="src\math\vector2f.c">
-      <FileType>CppCode</FileType>
-    </None>
-    <None Include="src\math\vector3f.c">
-      <FileType>CppCode</FileType>
-    </None>
-    <None Include="src\math\matrix4f.c">
-      <FileType>CppCode</FileType>
-    </None>
-    <None Include="src\dx12.c">
-      <FileType>CppCode</FileType>
-    </None>
-    <None Include="src\game.c">
-      <FileType>CppCode</FileType>
-    </None>
+    <FxCompile Include="src\hlsl\shaderp.hlsl">
+      <FileType>Document</FileType>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Pixel</ShaderType>
+      <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">6.2</ShaderModel>
+      <AdditionalOptions Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">/Qembed_debug %(AdditionalOptions)</AdditionalOptions>
+    </FxCompile>
+    <None Include="src\hlsl\shader.hlsli" />
     <None Include="src\math\math.c">
       <FileType>CppCode</FileType>
     </None>
-    <None Include="src\rawinput.c">
-      <FileType>CppCode</FileType>
-    </None>
-    <None Include="src\resource.c">
-      <FileType>CppCode</FileType>
-    </None>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="src\app.h" />
+    <ClInclude Include="src\cgltf.h" />
+    <ClInclude Include="src\dx12\descriptorheap.h" />
+    <ClInclude Include="src\dx12\dx12.h" />
+    <ClInclude Include="src\math\math.h" />
+    <ClInclude Include="src\rawinput.h" />
+    <ClInclude Include="src\resources.h" />
+    <ClInclude Include="src\stb_image.h" />
+    <ClInclude Include="src\types.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <ResourceCompile Include="src\resources.rc" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

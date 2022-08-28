@@ -1,18 +1,19 @@
-typedef struct {
+#include "descriptorheap.h"
+
+typedef struct t_DX12SHADER {
   ID3D12RootSignature *rootsignature;
   ID3D12PipelineState *pipeline;
 } DX12SHADER;
 
-typedef struct {
+typedef struct t_DX12TEXTURE {
   ID3D12Resource *texture, *uploadtexture;
 } DX12TEXTURE;
 
-typedef struct {
+typedef struct t_DX12SAMPLER {
   ID3D12DescriptorHeap *heap;
 } DX12SAMPLER;
 
-typedef struct {
-  IDXGIAdapter *adapter;
+typedef struct t_DX12STATE {
   ID3D12Device *device;
   ID3D12CommandQueue *queue;
   IDXGISwapChain3 *swapchain;
@@ -21,19 +22,19 @@ typedef struct {
   ID3D12CommandAllocator *allocator;
   ID3D12GraphicsCommandList *list;
   ID3D12Fence *fence;
-  ID3D12DescriptorHeap *depthstencilviewheap;
+  ID3D12DescriptorHeap *depthstencilviewdescriptorheap;
 } DX12STATE;
 
-typedef struct {
+typedef struct t_DX12BUFFER {
   ID3D12Resource *buffer, *bufferupload;
 } DX12BUFFER;
 
-typedef struct {
+typedef struct t_DX12VERTEXBUFFER {
   ID3D12Resource *buffer, *bufferupload;
   D3D12_VERTEX_BUFFER_VIEW view;
 } DX12VERTEXBUFFER;
 
-typedef struct {
+typedef struct t_DX12INDEXBUFFER {
   ID3D12Resource *buffer, *bufferupload;
   D3D12_INDEX_BUFFER_VIEW view;
 } DX12INDEXBUFFER;

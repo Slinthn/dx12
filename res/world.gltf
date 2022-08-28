@@ -26,13 +26,18 @@
             "name" : "Floor",
             "scale" : [
                 50,
-                0.13598847389221191,
+                0.10000000149011612,
                 50
+            ],
+            "translation" : [
+                0,
+                -0.10000000149011612,
+                0
             ]
         },
         {
             "mesh" : 1,
-            "name" : "Cube",
+            "name" : "Fence",
             "scale" : [
                 0.3999713063240051,
                 0.3999713063240051,
@@ -46,7 +51,7 @@
         },
         {
             "mesh" : 2,
-            "name" : "Cube.001",
+            "name" : "Chao",
             "rotation" : [
                 -0.999224066734314,
                 0,
@@ -77,7 +82,7 @@
     "materials" : [
         {
             "doubleSided" : true,
-            "name" : "Material",
+            "name" : "Floor",
             "pbrMetallicRoughness" : {
                 "baseColorFactor" : [
                     0.800000011920929,
@@ -91,7 +96,7 @@
         },
         {
             "doubleSided" : true,
-            "name" : "Material.002",
+            "name" : "Fence",
             "pbrMetallicRoughness" : {
                 "baseColorTexture" : {
                     "index" : 0
@@ -102,7 +107,7 @@
         },
         {
             "doubleSided" : true,
-            "name" : "Material.003",
+            "name" : "Chao",
             "pbrMetallicRoughness" : {
                 "baseColorTexture" : {
                     "index" : 1
@@ -115,9 +120,6 @@
             "doubleSided" : true,
             "name" : "Material",
             "pbrMetallicRoughness" : {
-                "baseColorTexture" : {
-                    "index" : 2
-                },
                 "metallicFactor" : 0,
                 "roughnessFactor" : 0.4000000059604645
             }
@@ -125,7 +127,7 @@
     ],
     "meshes" : [
         {
-            "name" : "Cube",
+            "name" : "Floor",
             "primitives" : [
                 {
                     "attributes" : {
@@ -139,7 +141,7 @@
             ]
         },
         {
-            "name" : "Cube.002",
+            "name" : "Fence",
             "primitives" : [
                 {
                     "attributes" : {
@@ -153,7 +155,7 @@
             ]
         },
         {
-            "name" : "Cube.001",
+            "name" : "Chao",
             "primitives" : [
                 {
                     "attributes" : {
@@ -185,10 +187,6 @@
         {
             "sampler" : 0,
             "source" : 0
-        },
-        {
-            "sampler" : 0,
-            "source" : 1
         },
         {
             "sampler" : 0,

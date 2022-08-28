@@ -13,14 +13,14 @@
 
 #include "types.h"
 #include "math/math.h"
-#include "dx12.h"
+#include "dx12/dx12.h"
 #include "rawinput.h"
 #include "app.h"
 #include "resources.h"
 
 #include "math/math.c"
 #include "rawinput.c"
-#include "dx12.c"
+#include "dx12/dx12.c"
 #include "resource.c"
 #include "game.c"
 
@@ -56,9 +56,6 @@ int APIENTRY WinMain(HINSTANCE instance, HINSTANCE prevInstance, LPSTR cmd, int 
   (void)prevInstance;
   (void)cmd;
   (void)show;
-  
-  // TODO is this a good idea
-  timeBeginPeriod(1);
 
   // Create a windows state variable
   WINSTATE winstate = {0};
@@ -102,15 +99,12 @@ int APIENTRY WinMain(HINSTANCE instance, HINSTANCE prevInstance, LPSTR cmd, int 
     GameUpdate(&winstate);
 
     // Sleep if time is remaining
-    // TODO is Sleep() a good idea
     SDWORD tosleep;
     do {
       UQWORD newcounter;
       QueryPerformanceCounter((LARGE_INTEGER *)&newcounter);
       float delta = ((float)(newcounter - counter) / (float)frequency) * 1000.0f;
       tosleep = (SDWORD)floorf((1000.0f / 60.0f) - delta);
-      if (tosleep > 0)
-        Sleep(tosleep);
     } while (tosleep > 0);
 
     // Update counter
