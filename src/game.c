@@ -12,7 +12,7 @@ void InitialiseHeap0(WINSTATE *winstate) {
   winstate->heap0.heap = DXCreateHeap(dxstate, totalsize, D3D12_HEAP_TYPE_DEFAULT);
   winstate->heap0.uploadheap = DXCreateHeap(dxstate, totalsize, D3D12_HEAP_TYPE_UPLOAD);
   
-  // Create a constant buffers
+  // Create constant buffers
   winstate->heap0.constantbuffer0 = DXCreateBufferResource(dxstate, AlignUp(sizeof(CB0), 256), winstate->heap0.heap, D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER, constantbuffer0offset);
   winstate->heap0.constantbuffer0upload = DXCreateBufferResource(dxstate, AlignUp(sizeof(CB0), 256), winstate->heap0.uploadheap, D3D12_RESOURCE_STATE_GENERIC_READ, constantbuffer0offset);
 
@@ -138,14 +138,14 @@ void GameUpdate(WINSTATE *winstate) {
 
   VECAdd3f(&winstate->player.transform.position, movedir);
 
-
   winstate->player.velocity[1] = 0;
+
   if (winstate->controls.actions & ACTION_ASCEND) {
-    winstate->player.velocity[1] = 1;
+    winstate->player.velocity[1] = 0.5f;
   }
 
   if (winstate->controls.actions & ACTION_DESCEND) {
-    winstate->player.velocity[1] = -1;
+    winstate->player.velocity[1] = -0.5f;
   }
 
   VECAdd3f(&transform->position, winstate->player.velocity);

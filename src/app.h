@@ -1,8 +1,8 @@
 #define EXIT_ERROR_CODE_INVALID_SM 0x1
 #define EXIT_ERROR_CODE_INVALID_SW 0x2
 
-#define WINDOW_WIDTH 1920
-#define WINDOW_HEIGHT 1080
+#define WINDOW_WIDTH 852
+#define WINDOW_HEIGHT 480
 
 #define TrueImageSizeInBytes(width, height) (AlignUp((width), 256) * (height) * 4)
 
