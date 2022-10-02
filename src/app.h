@@ -41,8 +41,8 @@ typedef struct {
   HRSRC src;
   HGLOBAL global;
   void *data;
-  UDWORD size;
-  UBYTE unused0[4];
+  U32 size;
+  U8 unused0[4];
 } WINRESOURCE;
 
 typedef struct {
@@ -50,9 +50,9 @@ typedef struct {
 } WINTEXTURE;
 
 typedef struct {
-  UDWORD facecount;
-  UBYTE unused0[4];
-  UQWORD textureindex;
+  U32 facecount;
+  U8 unused0[4];
+  U64 textureindex;
   DX12VERTEXBUFFER vertexbuffer;
   DX12VERTEXBUFFER texturebuffer;
   DX12VERTEXBUFFER normalbuffer;
@@ -61,7 +61,7 @@ typedef struct {
 } WINMODEL;
 
 typedef struct {
-  UQWORD modelindex;
+  U64 modelindex;
   TRANSFORM transform;
 } WORLDOBJECT;
 
@@ -80,20 +80,18 @@ typedef struct {
 typedef struct {
   DX12STATE dxstate;
   CONTROL controls;
-  UBYTE unused0[4];
+  U8 unused0[4];
   DX12SHADER defaultshader;
   DX12SHADER shadershader;
   WORLD world1;
 
   DX12SAMPLER sampler;
   HEAP0 heap0;
-  DX12DESCRIPTORHEAP heap;
-  ID3D12DescriptorHeap *shaderdescriptorheap;
-  ID3D12Resource *shaderdepthresource;
+  DX12DESCRIPTORHEAP descriptorheap;
 
-  DX12DESCRIPTORHANDLE shadertexturehandle;
+  DX12SHADOW shadow;
 
   PLAYER player;
   TRANSFORM sun;
-  UBYTE unused1[4];
+  U8 unused1[4];
 } WINSTATE;

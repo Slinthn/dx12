@@ -14,7 +14,7 @@ void RIInit(HWND window) {
 }
 
 void RIParse(CONTROL *control, HRAWINPUT rawinput) {
-  UDWORD size;
+  U32 size;
   GetRawInputData(rawinput, RID_INPUT, 0, &size, sizeof(RAWINPUTHEADER));
 
   RAWINPUT *data = VirtualAlloc(0, size, MEM_COMMIT | MEM_RESERVE, PAGE_READWRITE);
@@ -22,8 +22,8 @@ void RIParse(CONTROL *control, HRAWINPUT rawinput) {
   
   switch (data->header.dwType) {
   case RIM_TYPEKEYBOARD: {
-    UBYTE down = !(data->data.keyboard.Flags & RI_KEY_BREAK);
-    UWORD key = data->data.keyboard.VKey;
+    U8 down = !(data->data.keyboard.Flags & RI_KEY_BREAK);
+    U16 key = data->data.keyboard.VKey;
 
     switch (key) {
     case 'W': {

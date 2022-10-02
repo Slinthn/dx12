@@ -4,9 +4,9 @@ void InitialiseHeap0(WINSTATE *winstate) {
   DX12STATE *dxstate = &winstate->dxstate;
 
   // Calculate the starting byte of each asset in the heap, and hence the total size required
-  UQWORD constantbuffer0offset = 0;
-  UQWORD constantbuffer2offset = AlignUp(constantbuffer0offset + sizeof(CB0), 1024 * 64);
-  UQWORD totalsize = AlignUp(constantbuffer2offset + sizeof(CB2), 1024 * 64);
+  U64 constantbuffer0offset = 0;
+  U64 constantbuffer2offset = AlignUp(constantbuffer0offset + sizeof(CB0), 1024 * 64);
+  U64 totalsize = AlignUp(constantbuffer2offset + sizeof(CB2), 1024 * 64);
 
   // Create normal descriptorheap and upload heap
   winstate->heap0.heap = DXCreateHeap(dxstate, totalsize, D3D12_HEAP_TYPE_DEFAULT);
@@ -24,14 +24,14 @@ void InitialiseHeap0(WINSTATE *winstate) {
   constantbufferviewdesc.BufferLocation = winstate->heap0.constantbuffer0->lpVtbl->GetGPUVirtualAddress(winstate->heap0.constantbuffer0);
   constantbufferviewdesc.SizeInBytes = AlignUp(sizeof(CB0), 256);
 
-  winstate->heap0.constantbuffer0handle = DXGetNextUnusedHandle(dxstate, &winstate->heap);
+  winstate->heap0.constantbuffer0handle = DXGetNextUnusedHandle(dxstate, &winstate->descriptorheap);
   dxstate->device->lpVtbl->CreateConstantBufferView(dxstate->device, &constantbufferviewdesc, winstate->heap0.constantbuffer0handle.cpuhandle);
 
   // Create another constant buffer view using the descriptor heap (reuse constantbufferviewdesc)
   constantbufferviewdesc.BufferLocation = winstate->heap0.constantbuffer2->lpVtbl->GetGPUVirtualAddress(winstate->heap0.constantbuffer2);
   constantbufferviewdesc.SizeInBytes = AlignUp(sizeof(CB2), 256);
 
-  winstate->heap0.constantbuffer2handle = DXGetNextUnusedHandle(dxstate, &winstate->heap);
+  winstate->heap0.constantbuffer2handle = DXGetNextUnusedHandle(dxstate, &winstate->descriptorheap);
   dxstate->device->lpVtbl->CreateConstantBufferView(dxstate->device, &constantbufferviewdesc, winstate->heap0.constantbuffer2handle.cpuhandle);
 }
 
@@ -71,7 +71,7 @@ void GameInit(WINSTATE *winstate) {
   dxstate->list->lpVtbl->Reset(dxstate->list, dxstate->allocator, winstate->defaultshader.pipeline);
 
   // Create descriptor heaps for both heap0 and heap1
-  winstate->heap = DXCreateDescriptorHeap(dxstate, 128, D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV, D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE);
+  winstate->descriptorheap = DXCreateDescriptorHeap(dxstate, 128, D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV, D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE);
 
   // Initialise heap
   InitialiseHeap0(winstate);
@@ -81,7 +81,7 @@ void GameInit(WINSTATE *winstate) {
   // TODO I think there's a problem with loading multiple worlds. The descriptor heaps suddenly don't line up (which is ok in the LoadGLTF call) but when accessing the descriptors in the SetRootDescriptorTables function, it's wrong
   // To be honest, i'm not sure. but i'll put this comment here just in case i forget in the future and something messes up and i don't know why
 
-  winstate->world1 = LoadGLTF(winstate, r.data, r.size, &winstate->heap);
+  winstate->world1 = LoadGLTF(winstate, r.data, r.size, &winstate->descriptorheap);
 
   // Close list, execute commands and wait
   dxstate->list->lpVtbl->Close(dxstate->list);
@@ -89,7 +89,7 @@ void GameInit(WINSTATE *winstate) {
   DXWaitForFence(dxstate);
 
   // TODO temporary, change colours
-  for (UDWORD i = 0; i < SizeofArray(winstate->world1.models); i++) {
+  for (U32 i = 0; i < SizeofArray(winstate->world1.models); i++) {
     VECCopy4f(&winstate->world1.models[i].colour, (VECTOR4F){0, 1, 1, 1});
   }
 
@@ -98,51 +98,7 @@ void GameInit(WINSTATE *winstate) {
   VECCopy4f(&winstate->world1.models[4].colour, (VECTOR4F){0, 0, 0, 0});
 
   // TODO temp shader buffer
-  D3D12_DESCRIPTOR_HEAP_DESC descriptorheapdesc = {0};
-  descriptorheapdesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_DSV;
-  descriptorheapdesc.NumDescriptors = 1;
-
-  dxstate->device->lpVtbl->CreateDescriptorHeap(dxstate->device, &descriptorheapdesc, &IID_ID3D12DescriptorHeap, &winstate->shaderdescriptorheap);
-
-  {
-    D3D12_HEAP_PROPERTIES heapproperties = {0};
-    heapproperties.Type = D3D12_HEAP_TYPE_DEFAULT;
-    heapproperties.CreationNodeMask = 1;
-    heapproperties.VisibleNodeMask = 1;
-
-    D3D12_RESOURCE_DESC resourcedesc = {0};
-    resourcedesc.Dimension = D3D12_RESOURCE_DIMENSION_TEXTURE2D;
-    resourcedesc.Width = WINDOW_WIDTH;
-    resourcedesc.Height = WINDOW_HEIGHT;
-    resourcedesc.DepthOrArraySize = 1;
-    resourcedesc.MipLevels = 0;
-    resourcedesc.SampleDesc.Count = 1;
-    resourcedesc.Format = DXGI_FORMAT_R32_TYPELESS;
-    resourcedesc.Flags = D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL;
-
-    D3D12_CLEAR_VALUE clearvalue = {0};
-    clearvalue.Format = DXGI_FORMAT_D32_FLOAT;
-    clearvalue.DepthStencil.Depth = 1.0f;
-  
-    dxstate->device->lpVtbl->CreateCommittedResource(dxstate->device, &heapproperties, 0, &resourcedesc, D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE | D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, &clearvalue, &IID_ID3D12Resource, &winstate->shaderdepthresource); // TODO make placed resource?
-
-    // Retrieve depth stencil view
-    D3D12_DEPTH_STENCIL_VIEW_DESC depthstencilviewdesc = {0};
-    depthstencilviewdesc.Format = DXGI_FORMAT_D32_FLOAT;
-    depthstencilviewdesc.ViewDimension = D3D12_DSV_DIMENSION_TEXTURE2D;
-
-    dxstate->device->lpVtbl->CreateDepthStencilView(dxstate->device, winstate->shaderdepthresource, &depthstencilviewdesc, DXGetCPUDescriptorHandleForHeapStart(winstate->shaderdescriptorheap));
-
-    D3D12_SHADER_RESOURCE_VIEW_DESC shaderresourceviewdesc = {0};
-    shaderresourceviewdesc.Format = DXGI_FORMAT_R32_FLOAT;
-    shaderresourceviewdesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
-    shaderresourceviewdesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
-    shaderresourceviewdesc.Texture2D.MipLevels = 1;
-
-    winstate->shadertexturehandle = DXGetNextUnusedHandle(dxstate, &winstate->heap);
-
-    dxstate->device->lpVtbl->CreateShaderResourceView(dxstate->device, winstate->shaderdepthresource, &shaderresourceviewdesc, winstate->shadertexturehandle.cpuhandle);
-  }
+  winstate->shadow = DXCreateShadows(dxstate, &winstate->descriptorheap);
 }
 
 void GameUpdate(WINSTATE *winstate) {
@@ -182,8 +138,14 @@ void GameUpdate(WINSTATE *winstate) {
 
   VECAdd3f(&winstate->player.transform.position, movedir);
 
-  if (winstate->controls.actions & ACTION_JUMP) {
+
+  winstate->player.velocity[1] = 0;
+  if (winstate->controls.actions & ACTION_ASCEND) {
     winstate->player.velocity[1] = 1;
+  }
+
+  if (winstate->controls.actions & ACTION_DESCEND) {
+    winstate->player.velocity[1] = -1;
   }
 
   VECAdd3f(&transform->position, winstate->player.velocity);
@@ -192,7 +154,8 @@ void GameUpdate(WINSTATE *winstate) {
     winstate->player.transform.position[1] = 0;
   }
 
-  winstate->player.velocity[1] -= 0.05f;
+  // Gravity
+  //winstate->player.velocity[1] -= 0.05f;
   
   GameRender(winstate);
 }

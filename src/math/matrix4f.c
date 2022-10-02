@@ -1,5 +1,5 @@
 void MIdentity(MATRIX *m) {
-  for (UDWORD i = 0; i < 16; i++) {
+  for (U32 i = 0; i < 16; i++) {
     (*m)[i] = 0;
   }
 

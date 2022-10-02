@@ -31,7 +31,7 @@ float4 PixelEntry(VSOUT input) : SV_TARGET {
     if (abs(fragcoord.z - zvalue.x) < 0.0002f) { // TODO this is 100% certified SCUFFED
       lit = 1;
     } else {
-      lit = 0.1;
+      lit = 0.25;
     }
   }
 
@@ -42,5 +42,9 @@ float4 PixelEntry(VSOUT input) : SV_TARGET {
     colour = t0.Sample(s0, float2(input.tex.x, 1 + input.tex.y));
   }
 
-  return colour * lit;
+  colour *= lit;
+
+  float grayscale = 0.2989 * colour.x + 0.587 * colour.y + 0.114 * colour.z;
+
+  return float4(grayscale, grayscale, grayscale, 1);
 }

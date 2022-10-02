@@ -1,6 +1,6 @@
 void DXWaitForFence(DX12STATE *state) {
   // Get new fence value 
-  UQWORD nextfence = state->fence->lpVtbl->GetCompletedValue(state->fence) + 1;
+  U64 nextfence = state->fence->lpVtbl->GetCompletedValue(state->fence) + 1;
 
   // Create fence event
   HANDLE fenceevent = CreateEventA(0, 0, 0, 0);
@@ -42,18 +42,18 @@ D3D12_GPU_DESCRIPTOR_HANDLE DXGetGPUDescriptorHandleForHeapStart(ID3D12Descripto
     return gpudescriptor;
 }
 
-DX12STATE DXInit(HWND window) {
+DX12STATE DXInit(HWND window, BOOL debug) {
   DX12STATE state = {0};
 
   // Setup debug layer
-  UDWORD flags = 0;
-#ifdef _DEBUG
-  flags |= DXGI_CREATE_FACTORY_DEBUG;
+  U32 flags = 0;
+  if (debug) {
+    flags |= DXGI_CREATE_FACTORY_DEBUG;
 
-  ID3D12Debug *debug;
-  D3D12GetDebugInterface(&IID_ID3D12Debug, &debug);
-  debug->lpVtbl->EnableDebugLayer(debug);
-#endif
+    ID3D12Debug *debuginterface;
+    D3D12GetDebugInterface(&IID_ID3D12Debug, &debuginterface);
+    debuginterface->lpVtbl->EnableDebugLayer(debuginterface);
+  }
 
   // Create DXGI factory
   IDXGIFactory2 *factory;
@@ -61,7 +61,7 @@ DX12STATE DXInit(HWND window) {
 
   // Query GPUs and create a device
   IDXGIAdapter *adapter;
-  for (UDWORD i = 0; factory->lpVtbl->EnumAdapters(factory, i, &adapter) != DXGI_ERROR_NOT_FOUND; i++) {
+  for (U32 i = 0; factory->lpVtbl->EnumAdapters(factory, i, &adapter) != DXGI_ERROR_NOT_FOUND; i++) {
     if (D3D12CreateDevice((IUnknown *)adapter, D3D_FEATURE_LEVEL_12_0, &IID_ID3D12Device, &state.device) == S_OK) {
       break;
     }
@@ -72,13 +72,13 @@ DX12STATE DXInit(HWND window) {
   }
 
   // Setup debug logging
-#ifdef _DEBUG
-  ID3D12InfoQueue *infoqueue;
-  state.device->lpVtbl->QueryInterface(state.device, &IID_ID3D12InfoQueue, &infoqueue);
-  infoqueue->lpVtbl->SetBreakOnSeverity(infoqueue, D3D12_MESSAGE_SEVERITY_CORRUPTION, 1);
-  infoqueue->lpVtbl->SetBreakOnSeverity(infoqueue, D3D12_MESSAGE_SEVERITY_WARNING, 1);
-  infoqueue->lpVtbl->SetBreakOnSeverity(infoqueue, D3D12_MESSAGE_SEVERITY_ERROR, 1);
-#endif
+  if (debug) {
+    ID3D12InfoQueue *infoqueue;
+    state.device->lpVtbl->QueryInterface(state.device, &IID_ID3D12InfoQueue, &infoqueue);
+    infoqueue->lpVtbl->SetBreakOnSeverity(infoqueue, D3D12_MESSAGE_SEVERITY_CORRUPTION, 1);
+    infoqueue->lpVtbl->SetBreakOnSeverity(infoqueue, D3D12_MESSAGE_SEVERITY_WARNING, 1);
+    infoqueue->lpVtbl->SetBreakOnSeverity(infoqueue, D3D12_MESSAGE_SEVERITY_ERROR, 1);
+  }
   
   // Setup command queue
   D3D12_COMMAND_QUEUE_DESC commandqueuedesc = {0};
@@ -118,9 +118,9 @@ DX12STATE DXInit(HWND window) {
 
   // Retrieve render target resources (2)
   D3D12_CPU_DESCRIPTOR_HANDLE cpudescriptor = DXGetCPUDescriptorHandleForHeapStart(state.rendertargetviewdescriptorheap);
-  UDWORD rtvDescriptorSize = state.device->lpVtbl->GetDescriptorHandleIncrementSize(state.device, D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
+  U32 rtvDescriptorSize = state.device->lpVtbl->GetDescriptorHandleIncrementSize(state.device, D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
 
-  for (UDWORD i = 0; i < 2; i++) {
+  for (U32 i = 0; i < 2; i++) {
     state.swapchain->lpVtbl->GetBuffer(state.swapchain, i, &IID_ID3D12Resource, &state.rendertargets[i]);
     state.device->lpVtbl->CreateRenderTargetView(state.device, state.rendertargets[i], 0, cpudescriptor);
     cpudescriptor.ptr += rtvDescriptorSize;
@@ -167,7 +167,7 @@ DX12STATE DXInit(HWND window) {
   return state;
 }
 
-DX12SHADER DXCreateShader(DX12STATE *state, void *vcode, UDWORD vsize, void *pcode, UDWORD psize, D3D12_INPUT_LAYOUT_DESC inputlayoutdesc) {
+DX12SHADER DXCreateShader(DX12STATE *state, void *vcode, U32 vsize, void *pcode, U32 psize, D3D12_INPUT_LAYOUT_DESC inputlayoutdesc) {
   DX12SHADER shader = {0};
 
   // Create root signature from vertex shader
@@ -201,7 +201,7 @@ DX12SHADER DXCreateShader(DX12STATE *state, void *vcode, UDWORD vsize, void *pco
   gpsd.DSVFormat = DXGI_FORMAT_D32_FLOAT;
   gpsd.SampleDesc.Count = 1;
 
-  for (UDWORD i = 0; i < D3D12_SIMULTANEOUS_RENDER_TARGET_COUNT; i++) {
+  for (U32 i = 0; i < D3D12_SIMULTANEOUS_RENDER_TARGET_COUNT; i++) {
     gpsd.BlendState.RenderTarget[i] = (D3D12_RENDER_TARGET_BLEND_DESC){0, 0, D3D12_BLEND_ONE, D3D12_BLEND_ZERO, D3D12_BLEND_OP_ADD, D3D12_BLEND_ONE, D3D12_BLEND_ZERO, D3D12_BLEND_OP_ADD, D3D12_LOGIC_OP_NOOP, D3D12_COLOR_WRITE_ENABLE_ALL};
   }
 
@@ -210,7 +210,7 @@ DX12SHADER DXCreateShader(DX12STATE *state, void *vcode, UDWORD vsize, void *pco
   // Return
   return shader;
 }
-ID3D12Heap *DXCreateHeap(DX12STATE *state, UQWORD sizeinbytes, D3D12_HEAP_TYPE type) {
+ID3D12Heap *DXCreateHeap(DX12STATE *state, U64 sizeinbytes, D3D12_HEAP_TYPE type) {
   // Create heap and align to 64KB
   D3D12_HEAP_DESC heapdesc = {0};
   heapdesc.SizeInBytes = AlignUp(sizeinbytes, 1024 * 64);
@@ -223,7 +223,7 @@ ID3D12Heap *DXCreateHeap(DX12STATE *state, UQWORD sizeinbytes, D3D12_HEAP_TYPE t
   return heap;
 }
 
-ID3D12Resource *DXCreateBufferResource(DX12STATE *state, UQWORD sizeinbytes, ID3D12Heap *heap, D3D12_RESOURCE_STATES resourcestate, UQWORD offset) {
+ID3D12Resource *DXCreateBufferResource(DX12STATE *state, U64 sizeinbytes, ID3D12Heap *heap, D3D12_RESOURCE_STATES resourcestate, U64 offset) {
   // Reserve memory to a resource on a heap
   D3D12_RESOURCE_DESC resourcedesc = {0};
   resourcedesc.Dimension = D3D12_RESOURCE_DIMENSION_BUFFER;
@@ -241,7 +241,7 @@ ID3D12Resource *DXCreateBufferResource(DX12STATE *state, UQWORD sizeinbytes, ID3
   return resource;
 }
 
-DX12BUFFER DXCreateAndUploadBuffer(DX12STATE *state, ID3D12Heap *heap, ID3D12Heap *uploadheap, void *data, UQWORD sizeinbytes, UQWORD offsetinbytes, D3D12_RESOURCE_STATES prevstate) {
+DX12BUFFER DXCreateAndUploadBuffer(DX12STATE *state, ID3D12Heap *heap, ID3D12Heap *uploadheap, void *data, U64 sizeinbytes, U64 offsetinbytes, D3D12_RESOURCE_STATES prevstate) {
   DX12BUFFER buffer = {0};
 
   // Create normal and upload resource
@@ -277,7 +277,7 @@ DX12BUFFER DXCreateAndUploadBuffer(DX12STATE *state, ID3D12Heap *heap, ID3D12Hea
   return buffer;
 }
 
-DX12VERTEXBUFFER DXCreateAndUploadVertexBuffer(DX12STATE *state, ID3D12Heap *heap, ID3D12Heap *uploadheap, void *data, UQWORD sizeinbytes, UQWORD offsetinbytes, UDWORD strideinbytes) {
+DX12VERTEXBUFFER DXCreateAndUploadVertexBuffer(DX12STATE *state, ID3D12Heap *heap, ID3D12Heap *uploadheap, void *data, U64 sizeinbytes, U64 offsetinbytes, U32 strideinbytes) {
   DX12VERTEXBUFFER vertexbuffer = {0};
   
   // Create upload buffer and normal buffer
@@ -289,13 +289,13 @@ DX12VERTEXBUFFER DXCreateAndUploadVertexBuffer(DX12STATE *state, ID3D12Heap *hea
   // Setup vertex buffer view
   vertexbuffer.view.BufferLocation = buffer.buffer->lpVtbl->GetGPUVirtualAddress(buffer.buffer);
   vertexbuffer.view.StrideInBytes = strideinbytes;
-  vertexbuffer.view.SizeInBytes = (UDWORD)sizeinbytes;
+  vertexbuffer.view.SizeInBytes = (U32)sizeinbytes;
 
   // Return
   return vertexbuffer;
 }
 
-DX12INDEXBUFFER DXCreateAndUploadIndexBuffer(DX12STATE *state, ID3D12Heap *heap, ID3D12Heap *uploadheap, void *data, UQWORD sizeinbytes, UQWORD offsetinbytes, DXGI_FORMAT format) {
+DX12INDEXBUFFER DXCreateAndUploadIndexBuffer(DX12STATE *state, ID3D12Heap *heap, ID3D12Heap *uploadheap, void *data, U64 sizeinbytes, U64 offsetinbytes, DXGI_FORMAT format) {
   DX12INDEXBUFFER indexbuffer = {0};
 
   // Create upload buffer and normal buffer
@@ -307,13 +307,13 @@ DX12INDEXBUFFER DXCreateAndUploadIndexBuffer(DX12STATE *state, ID3D12Heap *heap,
   // Setup index buffer view
   indexbuffer.view.BufferLocation = buffer.buffer->lpVtbl->GetGPUVirtualAddress(buffer.buffer);
   indexbuffer.view.Format = format;
-  indexbuffer.view.SizeInBytes = (UDWORD)sizeinbytes;
+  indexbuffer.view.SizeInBytes = (U32)sizeinbytes;
 
   // Return
   return indexbuffer;
 }
 
-DX12TEXTURE DXCreateAndUploadTexture(DX12STATE *state, UDWORD width, UDWORD height, ID3D12Heap *heap, ID3D12Heap *uploadheap, void *data, UQWORD offsetinbytes) {
+DX12TEXTURE DXCreateAndUploadTexture(DX12STATE *state, U32 width, U32 height, ID3D12Heap *heap, ID3D12Heap *uploadheap, void *data, U64 offsetinbytes) {
   DX12TEXTURE texture = {0};
   
   // Reserve memory for the resource on the heap
@@ -353,12 +353,12 @@ DX12TEXTURE DXCreateAndUploadTexture(DX12STATE *state, UDWORD width, UDWORD heig
   src.PlacedFootprint.Footprint.Height = height;
   src.PlacedFootprint.Footprint.Depth = 1;
   src.PlacedFootprint.Footprint.RowPitch = AlignUp(width * 4, 256);
-  src.PlacedFootprint.Offset = AlignUp((UQWORD)ptr, 512) - (UQWORD)ptr;
+  src.PlacedFootprint.Offset = AlignUp((U64)ptr, 512) - (U64)ptr;
 
   // Copy memory from RAM to the upload resource
-  for (UDWORD i = 0; i < height; i++) {
-    void *srcptr = (void *)((UQWORD)data + (UQWORD)(width * i * 4));
-    void *destptr = (void *)((UQWORD)ptr + src.PlacedFootprint.Offset + (UQWORD)(src.PlacedFootprint.Footprint.RowPitch * i));
+  for (U32 i = 0; i < height; i++) {
+    void *srcptr = (void *)((U64)data + (U64)(width * i * 4));
+    void *destptr = (void *)((U64)ptr + src.PlacedFootprint.Offset + (U64)(src.PlacedFootprint.Footprint.RowPitch * i));
     CopyMemory(destptr, srcptr, width * 4);
   }
 
@@ -410,3 +410,55 @@ DX12SAMPLER DXCreateSampler(DX12STATE *state) {
 }
 
 #include "descriptorheap.c"
+
+DX12SHADOW DXCreateShadows(DX12STATE *state, DX12DESCRIPTORHEAP *texturedescriptorheap) {
+  DX12SHADOW shadow = {0};
+
+  // Create descriptor heap for the shader with a single entry for the depth stencil view
+  D3D12_DESCRIPTOR_HEAP_DESC descriptorheapdesc = {0};
+  descriptorheapdesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_DSV;
+  descriptorheapdesc.NumDescriptors = 1;
+
+  state->device->lpVtbl->CreateDescriptorHeap(state->device, &descriptorheapdesc, &IID_ID3D12DescriptorHeap, &shadow.descriptorheap);
+
+  D3D12_HEAP_PROPERTIES heapproperties = {0};
+  heapproperties.Type = D3D12_HEAP_TYPE_DEFAULT;
+  heapproperties.CreationNodeMask = 1;
+  heapproperties.VisibleNodeMask = 1;
+
+  D3D12_RESOURCE_DESC resourcedesc = {0};
+  resourcedesc.Dimension = D3D12_RESOURCE_DIMENSION_TEXTURE2D;
+  resourcedesc.Width = WINDOW_WIDTH;
+  resourcedesc.Height = WINDOW_HEIGHT;
+  resourcedesc.DepthOrArraySize = 1;
+  resourcedesc.MipLevels = 0;
+  resourcedesc.SampleDesc.Count = 1;
+  resourcedesc.Format = DXGI_FORMAT_R32_TYPELESS;
+  resourcedesc.Flags = D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL;
+
+  D3D12_CLEAR_VALUE clearvalue = {0};
+  clearvalue.Format = DXGI_FORMAT_D32_FLOAT;
+  clearvalue.DepthStencil.Depth = 1.0f;
+
+  state->device->lpVtbl->CreateCommittedResource(state->device, &heapproperties, 0, &resourcedesc, D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE | D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, &clearvalue, &IID_ID3D12Resource, &shadow.depthresource); // TODO make placed resource?
+
+  // Retrieve depth stencil view
+  D3D12_DEPTH_STENCIL_VIEW_DESC depthstencilviewdesc = {0};
+  depthstencilviewdesc.Format = DXGI_FORMAT_D32_FLOAT;
+  depthstencilviewdesc.ViewDimension = D3D12_DSV_DIMENSION_TEXTURE2D;
+
+  state->device->lpVtbl->CreateDepthStencilView(state->device, shadow.depthresource, &depthstencilviewdesc, DXGetCPUDescriptorHandleForHeapStart(shadow.descriptorheap));
+
+  D3D12_SHADER_RESOURCE_VIEW_DESC shaderresourceviewdesc = {0};
+  shaderresourceviewdesc.Format = DXGI_FORMAT_R32_FLOAT;
+  shaderresourceviewdesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
+  shaderresourceviewdesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
+  shaderresourceviewdesc.Texture2D.MipLevels = 1;
+
+  shadow.texturehandle = DXGetNextUnusedHandle(state, texturedescriptorheap);
+
+  state->device->lpVtbl->CreateShaderResourceView(state->device, shadow.depthresource, &shaderresourceviewdesc, shadow.texturehandle.cpuhandle);
+
+  // Return
+  return shadow;
+}

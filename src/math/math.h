@@ -10,5 +10,5 @@ typedef struct {
   VECTOR3F position;
   VECTOR3F rotation;
   VECTOR3F scale;
-  UBYTE unused0[4];
+  U8 unused0[4];
 } TRANSFORM;

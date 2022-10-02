@@ -4,21 +4,21 @@
 
 #pragma pack(push, 1)
 typedef struct {
-  UBYTE reportid;
-  UBYTE lx;
-  UBYTE ly;
-  UBYTE rx;
-  UBYTE ry;
-  UWORD buttons;
-  UBYTE counter;
-  UBYTE l2;
-  UBYTE r2;
+  U8 reportid;
+  U8 lx;
+  U8 ly;
+  U8 rx;
+  U8 ry;
+  U16 buttons;
+  U8 counter;
+  U8 l2;
+  U8 r2;
 } DS4;
 #pragma pack(pop)
 
 typedef struct {
   VECTOR2F move;
   VECTOR2F look;
-  UBYTE actions;
-  SBYTE unused[3];
+  U8 actions;
+  S8 unused[3];
 } CONTROL;

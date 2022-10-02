@@ -1,4 +1,4 @@
-DX12DESCRIPTORHEAP DXCreateDescriptorHeap(DX12STATE *state, UDWORD count, D3D12_DESCRIPTOR_HEAP_TYPE type, D3D12_DESCRIPTOR_HEAP_FLAGS flags) {
+DX12DESCRIPTORHEAP DXCreateDescriptorHeap(DX12STATE *state, U32 count, D3D12_DESCRIPTOR_HEAP_TYPE type, D3D12_DESCRIPTOR_HEAP_FLAGS flags) {
   DX12DESCRIPTORHEAP ret = {0};
 
   D3D12_DESCRIPTOR_HEAP_DESC descriptorheapdesc = {0};
@@ -17,7 +17,7 @@ DX12DESCRIPTORHEAP DXCreateDescriptorHeap(DX12STATE *state, UDWORD count, D3D12_
 DX12DESCRIPTORHANDLE DXGetNextUnusedHandle(DX12STATE *state, DX12DESCRIPTORHEAP *heap) {
   DX12DESCRIPTORHANDLE ret = {0};
 
-  UDWORD increment = state->device->lpVtbl->GetDescriptorHandleIncrementSize(state->device, heap->type);
+  U32 increment = state->device->lpVtbl->GetDescriptorHandleIncrementSize(state->device, heap->type);
 
   ret.cpuhandle = DXGetCPUDescriptorHandleForHeapStart(heap->heap);
   ret.cpuhandle.ptr += increment * heap->usedcount;

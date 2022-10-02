@@ -1,8 +1,8 @@
-WINRESOURCE WINLoadResource(UDWORD name, UDWORD type) {
+WINRESOURCE WINLoadResource(U32 name, U32 type) {
   HRSRC src = FindResource(0, MAKEINTRESOURCE(name), MAKEINTRESOURCE(type));
   HGLOBAL global = LoadResource(0, src);
   void *data = LockResource(global);
-  UDWORD size = SizeofResource(0, src);
+  U32 size = SizeofResource(0, src);
 
   WINRESOURCE res = {0};
   res.src = src;
@@ -12,10 +12,10 @@ WINRESOURCE WINLoadResource(UDWORD name, UDWORD type) {
   return res;
 }
 
-WORLD LoadGLTF(WINSTATE *winstate, void *gltfdata, UQWORD sizeinbytes, DX12DESCRIPTORHEAP *heap) {
+WORLD LoadGLTF(WINSTATE *winstate, void *gltfdata, U64 sizeinbytes, DX12DESCRIPTORHEAP *heap) {
   WORLD ret = {0};
 
-  UQWORD indexoffset = 1; // Make the first entry in each array (objects, textures, etc) a null entry
+  U64 indexoffset = 1; // Make the first entry in each array (objects, textures, etc) a null entry
 
   DX12STATE *dxstate = &winstate->dxstate;
 
@@ -24,31 +24,31 @@ WORLD LoadGLTF(WINSTATE *winstate, void *gltfdata, UQWORD sizeinbytes, DX12DESCR
   cgltf_parse(&options, gltfdata, sizeinbytes, &bufdata);
   cgltf_load_buffers(&options, bufdata, 0);
 
-  UQWORD heaptotalsize = 0; // This variable is to store the size of the WHOLE allocated heap (to be used later when allocating memory for the heap)
+  U64 heaptotalsize = 0; // This variable is to store the size of the WHOLE allocated heap (to be used later when allocating memory for the heap)
 #if 1
 
-  for (UDWORD i = 0; i < bufdata->meshes_count; i++) {
+  for (U32 i = 0; i < bufdata->meshes_count; i++) {
     // Get heap required size for models
     cgltf_buffer_view *indexbuffer = bufdata->meshes[i].primitives->indices->buffer_view;
     cgltf_buffer_view *vertexbuffer = bufdata->meshes[i].primitives->attributes[0].data->buffer_view;
     cgltf_buffer_view *texturebuffer = bufdata->meshes[i].primitives->attributes[2].data->buffer_view;
     cgltf_buffer_view *normalbuffer = bufdata->meshes[i].primitives->attributes[1].data->buffer_view;
 
-    UQWORD vertexbufferoffset = 0;
-    UQWORD texturebufferoffset = AlignUp(vertexbufferoffset + vertexbuffer->size, 1024 * 64);
-    UQWORD normalbufferoffset = AlignUp(texturebufferoffset + texturebuffer->size, 1024 * 64);
-    UQWORD indexbufferoffset = AlignUp(normalbufferoffset + normalbuffer->size, 1024 * 64);
+    U64 vertexbufferoffset = 0;
+    U64 texturebufferoffset = AlignUp(vertexbufferoffset + vertexbuffer->size, 1024 * 64);
+    U64 normalbufferoffset = AlignUp(texturebufferoffset + texturebuffer->size, 1024 * 64);
+    U64 indexbufferoffset = AlignUp(normalbufferoffset + normalbuffer->size, 1024 * 64);
     heaptotalsize += AlignUp(indexbufferoffset + indexbuffer->size, 1024 * 64);
   }
 #endif // 0
 
 
-  for (UDWORD i = 0; i < bufdata->textures_count; i++) {
+  for (U32 i = 0; i < bufdata->textures_count; i++) {
     // Get heap required size for textures
     cgltf_buffer_view *bufferview = bufdata->textures[i].image->buffer_view;
 
-    SDWORD width, height, n;
-    stbi_info_from_memory((void *)((UQWORD)bufferview->buffer->data + bufferview->offset), (SDWORD)bufferview->size, &width, &height, &n);
+    S32 width, height, n;
+    stbi_info_from_memory((void *)((U64)bufferview->buffer->data + bufferview->offset), (S32)bufferview->size, &width, &height, &n);
 
     heaptotalsize += AlignUp(TrueImageSizeInBytes(width, height), 1024 * 64);
   }
@@ -57,35 +57,35 @@ WORLD LoadGLTF(WINSTATE *winstate, void *gltfdata, UQWORD sizeinbytes, DX12DESCR
   ret.heap = DXCreateHeap(dxstate, heaptotalsize, D3D12_HEAP_TYPE_DEFAULT);
   ret.uploadheap = DXCreateHeap(dxstate, heaptotalsize, D3D12_HEAP_TYPE_UPLOAD);
 
-  UQWORD totalallocatedsize = 0; // This variable is to store the total size used up (so far) after each model is allocated.
+  U64 totalallocatedsize = 0; // This variable is to store the total size used up (so far) after each model is allocated.
                                  // This is in order to ensure the correct offset and no overlapping
 
-  for (UDWORD i = 0; i < bufdata->meshes_count; i++) {
+  for (U32 i = 0; i < bufdata->meshes_count; i++) {
     // Calculate the starting byte of each asset in the descriptorheap, and hence the total size required
     cgltf_buffer_view *indexbuffer = bufdata->meshes[i].primitives->indices->buffer_view;
     cgltf_buffer_view *vertexbuffer = bufdata->meshes[i].primitives->attributes[0].data->buffer_view;
     cgltf_buffer_view *texturebuffer = bufdata->meshes[i].primitives->attributes[2].data->buffer_view;
     cgltf_buffer_view *normalbuffer = bufdata->meshes[i].primitives->attributes[1].data->buffer_view;
 
-    UQWORD vertexbufferoffset = totalallocatedsize;
-    UQWORD texturebufferoffset = AlignUp(vertexbufferoffset + vertexbuffer->size, 1024 * 64);
-    UQWORD normalbufferoffset = AlignUp(texturebufferoffset + texturebuffer->size, 1024 * 64);
-    UQWORD indexbufferoffset = AlignUp(normalbufferoffset + normalbuffer->size, 1024 * 64);
-    UQWORD totalsize = AlignUp(indexbufferoffset + indexbuffer->size, 1024 * 64);
+    U64 vertexbufferoffset = totalallocatedsize;
+    U64 texturebufferoffset = AlignUp(vertexbufferoffset + vertexbuffer->size, 1024 * 64);
+    U64 normalbufferoffset = AlignUp(texturebufferoffset + texturebuffer->size, 1024 * 64);
+    U64 indexbufferoffset = AlignUp(normalbufferoffset + normalbuffer->size, 1024 * 64);
+    U64 totalsize = AlignUp(indexbufferoffset + indexbuffer->size, 1024 * 64);
 
     // Increment offset for the next model/texture
     totalallocatedsize = totalsize;
 
     // Create vertex, texture, and normal buffers, and index buffer for model
-    ret.models[i + indexoffset].vertexbuffer = DXCreateAndUploadVertexBuffer(dxstate, ret.heap, ret.uploadheap, (void *)((UQWORD)vertexbuffer->buffer->data + (UQWORD)vertexbuffer->offset), vertexbuffer->size, vertexbufferoffset, 3 * sizeof(float));
+    ret.models[i + indexoffset].vertexbuffer = DXCreateAndUploadVertexBuffer(dxstate, ret.heap, ret.uploadheap, (void *)((U64)vertexbuffer->buffer->data + (U64)vertexbuffer->offset), vertexbuffer->size, vertexbufferoffset, 3 * sizeof(float));
 
-    ret.models[i + indexoffset].texturebuffer = DXCreateAndUploadVertexBuffer(dxstate, ret.heap, ret.uploadheap, (void *)((UQWORD)texturebuffer->buffer->data + (UQWORD)texturebuffer->offset), texturebuffer->size, texturebufferoffset, 2 * sizeof(float));
+    ret.models[i + indexoffset].texturebuffer = DXCreateAndUploadVertexBuffer(dxstate, ret.heap, ret.uploadheap, (void *)((U64)texturebuffer->buffer->data + (U64)texturebuffer->offset), texturebuffer->size, texturebufferoffset, 2 * sizeof(float));
 
-    ret.models[i + indexoffset].normalbuffer = DXCreateAndUploadVertexBuffer(dxstate, ret.heap, ret.uploadheap, (void *)((UQWORD)normalbuffer->buffer->data + (UQWORD)normalbuffer->offset), normalbuffer->size, normalbufferoffset, 3 * sizeof(float));
+    ret.models[i + indexoffset].normalbuffer = DXCreateAndUploadVertexBuffer(dxstate, ret.heap, ret.uploadheap, (void *)((U64)normalbuffer->buffer->data + (U64)normalbuffer->offset), normalbuffer->size, normalbufferoffset, 3 * sizeof(float));
 
-    ret.models[i + indexoffset].indexbuffer = DXCreateAndUploadIndexBuffer(dxstate, ret.heap, ret.uploadheap, (void *)((UQWORD)indexbuffer->buffer->data + (UQWORD)indexbuffer->offset), indexbuffer->size, indexbufferoffset, DXGI_FORMAT_R16_UINT);
+    ret.models[i + indexoffset].indexbuffer = DXCreateAndUploadIndexBuffer(dxstate, ret.heap, ret.uploadheap, (void *)((U64)indexbuffer->buffer->data + (U64)indexbuffer->offset), indexbuffer->size, indexbufferoffset, DXGI_FORMAT_R16_UINT);
 
-    ret.models[i + indexoffset].facecount = (UDWORD)indexbuffer->size / sizeof(UWORD) / 3;
+    ret.models[i + indexoffset].facecount = (U32)indexbuffer->size / sizeof(U16) / 3;
 
     // Get texture (if applicable)
     if (bufdata->meshes[i].primitives->material && bufdata->meshes[i].primitives->material->pbr_metallic_roughness.base_color_texture.texture) {
@@ -101,11 +101,11 @@ WORLD LoadGLTF(WINSTATE *winstate, void *gltfdata, UQWORD sizeinbytes, DX12DESCR
     obj->modelindex = bufdata->nodes[i].mesh - bufdata->meshes + indexoffset;
   }
 
-  for (UDWORD i = 0; i < bufdata->textures_count; i++) {
+  for (U32 i = 0; i < bufdata->textures_count; i++) {
     cgltf_buffer_view *bufferview = bufdata->textures[i].image->buffer_view;
 
-    SDWORD width, height, n;
-    void *data = stbi_load_from_memory((void *)((UQWORD)bufferview->buffer->data + bufferview->offset), (SDWORD)bufferview->size, &width, &height, &n, 4);
+    S32 width, height, n;
+    void *data = stbi_load_from_memory((void *)((U64)bufferview->buffer->data + bufferview->offset), (S32)bufferview->size, &width, &height, &n, 4);
 
     // Use the totalallocatedsize variable in order to offset the texture in the heap
     DX12TEXTURE texture = DXCreateAndUploadTexture(dxstate, width, height, ret.heap, ret.uploadheap, data, totalallocatedsize);

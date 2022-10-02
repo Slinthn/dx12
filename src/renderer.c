@@ -4,7 +4,7 @@ void RenderWorld(WINSTATE *winstate, BOOL coloured) {
   WORLD *world = &winstate->world1;
 
   // Render all world objects
-  for (UDWORD i = 0; i < SizeofArray(world->objects); i++) {
+  for (U32 i = 0; i < SizeofArray(world->objects); i++) {
     WORLDOBJECT *obj = &world->objects[i];
     if (!obj->modelindex) {
       continue;
@@ -30,13 +30,14 @@ void RenderWorld(WINSTATE *winstate, BOOL coloured) {
   }
 }
 
-void RenderWholeShebang(WINSTATE *winstate, UDWORD frame) {
+void RenderWholeShebang(WINSTATE *winstate, U32 frame) {
   DX12STATE *dxstate = &winstate->dxstate;
 
   // Setup CB2  
   {
     CB2 cb2 = {0};
 
+    // TODO
     VECCopy3f(&winstate->player.transform.scale, (VECTOR3F){1, 1, 1});
     VECCopy3f(&winstate->sun.scale, (VECTOR3F){1, 1, 1});
     VECCopy3f(&winstate->sun.position, (VECTOR3F){0, 50, 0});
@@ -75,7 +76,7 @@ void RenderWholeShebang(WINSTATE *winstate, UDWORD frame) {
 
     CB0 cb0 = {0};
 
-    for (UDWORD i = 0; i < SizeofArray(world->objects); i++) {
+    for (U32 i = 0; i < SizeofArray(world->objects); i++) {
       WORLDOBJECT *obj = &world->objects[i];
       if (!obj->modelindex) {
         continue;
@@ -112,19 +113,19 @@ void RenderWholeShebang(WINSTATE *winstate, UDWORD frame) {
   // Setup rendering for shadows
   {
     // Bind shader
-    D3D12_CPU_DESCRIPTOR_HANDLE shaderdescriptor = DXGetCPUDescriptorHandleForHeapStart(winstate->shaderdescriptorheap);
+    D3D12_CPU_DESCRIPTOR_HANDLE shaderdescriptor = DXGetCPUDescriptorHandleForHeapStart(winstate->shadow.descriptorheap);
     dxstate->list->lpVtbl->OMSetRenderTargets(dxstate->list, 0, 0, 0, &shaderdescriptor);
 
     // Ready depth buffer
     D3D12_RESOURCE_BARRIER rb = {0};
-    rb.Transition.pResource = winstate->shaderdepthresource;
+    rb.Transition.pResource = winstate->shadow.depthresource;
     rb.Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
     rb.Transition.StateBefore = D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE | D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE;
     rb.Transition.StateAfter = D3D12_RESOURCE_STATE_DEPTH_WRITE;
     dxstate->list->lpVtbl->ResourceBarrier(dxstate->list, 1, &rb);
 
     // Clear buffers
-    dxstate->list->lpVtbl->ClearDepthStencilView(dxstate->list, DXGetCPUDescriptorHandleForHeapStart(winstate->shaderdescriptorheap), D3D12_CLEAR_FLAG_DEPTH, 1.0f, 0, 0, 0);
+    dxstate->list->lpVtbl->ClearDepthStencilView(dxstate->list, DXGetCPUDescriptorHandleForHeapStart(winstate->shadow.descriptorheap), D3D12_CLEAR_FLAG_DEPTH, 1.0f, 0, 0, 0);
 
     // Set pipeline state
     dxstate->list->lpVtbl->SetPipelineState(dxstate->list, winstate->shadershader.pipeline);
@@ -133,7 +134,7 @@ void RenderWholeShebang(WINSTATE *winstate, UDWORD frame) {
     dxstate->list->lpVtbl->SetGraphicsRootSignature(dxstate->list, winstate->shadershader.rootsignature);
     
     // Set descriptor heaps
-    ID3D12DescriptorHeap *heaps[] = {winstate->heap.heap, winstate->sampler.heap};
+    ID3D12DescriptorHeap *heaps[] = {winstate->descriptorheap.heap, winstate->sampler.heap};
     dxstate->list->lpVtbl->SetDescriptorHeaps(dxstate->list, SizeofArray(heaps), heaps);
 
     // Bind depth buffer for reading
@@ -144,7 +145,7 @@ void RenderWholeShebang(WINSTATE *winstate, UDWORD frame) {
     RenderWorld(winstate, FALSE);
 
     // Ready depth buffer for reading
-    rb.Transition.pResource = winstate->shaderdepthresource;
+    rb.Transition.pResource = winstate->shadow.depthresource;
     rb.Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
     rb.Transition.StateBefore = D3D12_RESOURCE_STATE_DEPTH_WRITE;
     rb.Transition.StateAfter = D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE | D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE;
@@ -155,7 +156,7 @@ void RenderWholeShebang(WINSTATE *winstate, UDWORD frame) {
   {
     // Set render target and depth target
     D3D12_CPU_DESCRIPTOR_HANDLE rtvdescriptor = DXGetCPUDescriptorHandleForHeapStart(dxstate->rendertargetviewdescriptorheap);
-    rtvdescriptor.ptr += (UQWORD)frame * dxstate->device->lpVtbl->GetDescriptorHandleIncrementSize(dxstate->device, D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
+    rtvdescriptor.ptr += (U64)frame * dxstate->device->lpVtbl->GetDescriptorHandleIncrementSize(dxstate->device, D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
     D3D12_CPU_DESCRIPTOR_HANDLE dsvdescriptor = DXGetCPUDescriptorHandleForHeapStart(dxstate->depthstencilviewdescriptorheap);
     dxstate->list->lpVtbl->OMSetRenderTargets(dxstate->list, 1, &rtvdescriptor, 0, &dsvdescriptor);
 
@@ -171,13 +172,13 @@ void RenderWholeShebang(WINSTATE *winstate, UDWORD frame) {
     dxstate->list->lpVtbl->SetGraphicsRootSignature(dxstate->list, winstate->defaultshader.rootsignature);
 
     // Set descriptor heaps
-    ID3D12DescriptorHeap *heaps[] = {winstate->heap.heap, winstate->sampler.heap};
+    ID3D12DescriptorHeap *heaps[] = {winstate->descriptorheap.heap, winstate->sampler.heap};
     dxstate->list->lpVtbl->SetDescriptorHeaps(dxstate->list, SizeofArray(heaps), heaps);
 
     // Bind depth buffer for reading (as well as usual buffers)
     dxstate->list->lpVtbl->SetGraphicsRootDescriptorTable(dxstate->list, 0, winstate->heap0.constantbuffer0handle.gpuhandle);
     dxstate->list->lpVtbl->SetGraphicsRootDescriptorTable(dxstate->list, 4, winstate->heap0.constantbuffer2handle.gpuhandle);
-    dxstate->list->lpVtbl->SetGraphicsRootDescriptorTable(dxstate->list, 3, winstate->shadertexturehandle.gpuhandle);
+    dxstate->list->lpVtbl->SetGraphicsRootDescriptorTable(dxstate->list, 3, winstate->shadow.texturehandle.gpuhandle);
 
     // Render scene objects for the shader
     RenderWorld(winstate, TRUE);
@@ -192,7 +193,7 @@ void GameRender(WINSTATE *winstate) {
   dxstate->list->lpVtbl->Reset(dxstate->list, dxstate->allocator, 0);
 
   // Get current frame
-  UDWORD frame = dxstate->swapchain->lpVtbl->GetCurrentBackBufferIndex(dxstate->swapchain);
+  U32 frame = dxstate->swapchain->lpVtbl->GetCurrentBackBufferIndex(dxstate->swapchain);
 
   // Setup viewport
   D3D12_VIEWPORT viewport = {0, 0, WINDOW_WIDTH, WINDOW_HEIGHT, 0, 1};

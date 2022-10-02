@@ -24,7 +24,7 @@
 #include "resource.c"
 #include "game.c"
 
-LRESULT WMessageProc(HWND window, UINT msg, WPARAM wparam, LPARAM lparam) {
+LRESULT WINMessageProc(HWND window, UINT msg, WPARAM wparam, LPARAM lparam) {
   // Get windows state
   WINSTATE *state = (WINSTATE *)GetWindowLongPtrA(window, GWLP_USERDATA);
 
@@ -64,7 +64,7 @@ int APIENTRY WinMain(HINSTANCE instance, HINSTANCE prevInstance, LPSTR cmd, int 
   WNDCLASSEXA wc = {0};
   wc.cbSize = sizeof(WNDCLASSEXA);
   wc.hInstance = instance;
-  wc.lpfnWndProc = WMessageProc;
+  wc.lpfnWndProc = WINMessageProc;
   wc.lpszClassName = "24/06/2022Slinapp";
 
   RegisterClassExA(&wc);
@@ -76,14 +76,14 @@ int APIENTRY WinMain(HINSTANCE instance, HINSTANCE prevInstance, LPSTR cmd, int 
   RIInit(window);
 
   // Initialise directx12
-  winstate.dxstate = DXInit(window);
+  winstate.dxstate = DXInit(window, 1);
   
   // Invoke game initialiser function
   GameInit(&winstate);
   
   // Initialise FPS manager
-  UQWORD counter;
-  UQWORD frequency;
+  U64 counter;
+  U64 frequency;
   QueryPerformanceCounter((LARGE_INTEGER *)&counter);
   QueryPerformanceFrequency((LARGE_INTEGER *)&frequency);
   
@@ -99,12 +99,12 @@ int APIENTRY WinMain(HINSTANCE instance, HINSTANCE prevInstance, LPSTR cmd, int 
     GameUpdate(&winstate);
 
     // Sleep if time is remaining
-    SDWORD tosleep;
+    S32 tosleep;
     do {
-      UQWORD newcounter;
+      U64 newcounter;
       QueryPerformanceCounter((LARGE_INTEGER *)&newcounter);
       float delta = ((float)(newcounter - counter) / (float)frequency) * 1000.0f;
-      tosleep = (SDWORD)floorf((1000.0f / 60.0f) - delta);
+      tosleep = (S32)floorf((1000.0f / 60.0f) - delta);
     } while (tosleep > 0);
 
     // Update counter

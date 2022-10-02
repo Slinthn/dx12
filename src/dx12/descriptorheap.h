@@ -4,9 +4,9 @@ typedef struct t_DX12DESCRIPTORHANDLE {
 } DX12DESCRIPTORHANDLE;
 
 typedef struct t_DX12DESCRIPTORHEAP {
-  UDWORD count;
-  UDWORD usedcount;
+  U32 count;
+  U32 usedcount;
   D3D12_DESCRIPTOR_HEAP_TYPE type;
-  UBYTE unused0[4];
+  U8 unused0[4];
   ID3D12DescriptorHeap *heap;
 } DX12DESCRIPTORHEAP;

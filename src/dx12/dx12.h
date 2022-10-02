@@ -38,3 +38,9 @@ typedef struct t_DX12INDEXBUFFER {
   ID3D12Resource *buffer, *bufferupload;
   D3D12_INDEX_BUFFER_VIEW view;
 } DX12INDEXBUFFER;
+
+typedef struct t_DX12SHADOW {
+  ID3D12Resource *depthresource;
+  ID3D12DescriptorHeap *descriptorheap;
+  DX12DESCRIPTORHANDLE texturehandle;
+} DX12SHADOW;
