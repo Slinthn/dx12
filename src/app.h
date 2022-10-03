@@ -4,6 +4,9 @@
 #define WINDOW_WIDTH 852
 #define WINDOW_HEIGHT 480
 
+#define SHADOW_WIDTH 400
+#define SHADOW_HEIGHT 400
+
 #define TrueImageSizeInBytes(width, height) (AlignUp((width), 256) * (height) * 4)
 
 #pragma pack(push, 1)

@@ -127,6 +127,14 @@ void RenderWholeShebang(WINSTATE *winstate, U32 frame) {
     // Clear buffers
     dxstate->list->lpVtbl->ClearDepthStencilView(dxstate->list, DXGetCPUDescriptorHandleForHeapStart(winstate->shadow.descriptorheap), D3D12_CLEAR_FLAG_DEPTH, 1.0f, 0, 0, 0);
 
+    // Setup viewport
+    D3D12_VIEWPORT viewport = {0, 0, SHADOW_WIDTH, SHADOW_HEIGHT, 0, 1};
+    dxstate->list->lpVtbl->RSSetViewports(dxstate->list, 1, &viewport);
+  
+    // Setup scissor
+    D3D12_RECT scissor = {0, 0, SHADOW_WIDTH, SHADOW_HEIGHT};
+    dxstate->list->lpVtbl->RSSetScissorRects(dxstate->list, 1, &scissor);
+
     // Set pipeline state
     dxstate->list->lpVtbl->SetPipelineState(dxstate->list, winstate->shadershader.pipeline);
 
@@ -171,6 +179,14 @@ void RenderWholeShebang(WINSTATE *winstate, U32 frame) {
     // Set root signature
     dxstate->list->lpVtbl->SetGraphicsRootSignature(dxstate->list, winstate->defaultshader.rootsignature);
 
+    // Setup viewport
+    D3D12_VIEWPORT viewport = {0, 0, WINDOW_WIDTH, WINDOW_HEIGHT, 0, 1};
+    dxstate->list->lpVtbl->RSSetViewports(dxstate->list, 1, &viewport);
+  
+    // Setup scissor
+    D3D12_RECT scissor = {0, 0, WINDOW_WIDTH, WINDOW_HEIGHT};
+    dxstate->list->lpVtbl->RSSetScissorRects(dxstate->list, 1, &scissor);
+
     // Set descriptor heaps
     ID3D12DescriptorHeap *heaps[] = {winstate->descriptorheap.heap, winstate->sampler.heap};
     dxstate->list->lpVtbl->SetDescriptorHeaps(dxstate->list, SizeofArray(heaps), heaps);
@@ -194,14 +210,6 @@ void GameRender(WINSTATE *winstate) {
 
   // Get current frame
   U32 frame = dxstate->swapchain->lpVtbl->GetCurrentBackBufferIndex(dxstate->swapchain);
-
-  // Setup viewport
-  D3D12_VIEWPORT viewport = {0, 0, WINDOW_WIDTH, WINDOW_HEIGHT, 0, 1};
-  dxstate->list->lpVtbl->RSSetViewports(dxstate->list, 1, &viewport);
-
-  // Setup scissor
-  D3D12_RECT scissor = {0, 0, WINDOW_WIDTH, WINDOW_HEIGHT};
-  dxstate->list->lpVtbl->RSSetScissorRects(dxstate->list, 1, &scissor);
 
   // Transition render target view to a drawing state
   D3D12_RESOURCE_BARRIER rb = {0};

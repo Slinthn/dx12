@@ -428,8 +428,8 @@ DX12SHADOW DXCreateShadows(DX12STATE *state, DX12DESCRIPTORHEAP *texturedescript
 
   D3D12_RESOURCE_DESC resourcedesc = {0};
   resourcedesc.Dimension = D3D12_RESOURCE_DIMENSION_TEXTURE2D;
-  resourcedesc.Width = WINDOW_WIDTH; // TODO shadow quality changes depending on resolution?
-  resourcedesc.Height = WINDOW_HEIGHT;
+  resourcedesc.Width = SHADOW_WIDTH;
+  resourcedesc.Height = SHADOW_HEIGHT;
   resourcedesc.DepthOrArraySize = 1;
   resourcedesc.MipLevels = 0;
   resourcedesc.SampleDesc.Count = 1;

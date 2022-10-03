@@ -41,6 +41,22 @@ void RIParse(CONTROL *control, HRAWINPUT rawinput) {
     case 'A': {
       control->move[0] = (float)-down;
     } break;
+    
+    case VK_SHIFT: {
+      if (down) {
+        control->actions |= ACTION_DESCEND;
+      } else {
+        control->actions ^= ACTION_DESCEND;
+      }
+    } break;
+
+    case ' ': {
+      if (down) {
+        control->actions |= ACTION_ASCEND;
+      } else {
+        control->actions ^= ACTION_ASCEND;
+      }
+    } break;
     }
   } break;
   

@@ -27,11 +27,21 @@ float4 PixelEntry(VSOUT input) : SV_TARGET {
 
   float lit = 1;
   if (fragconstrained.x > 0 && fragconstrained.x < 1 && fragconstrained.y > 0 && fragconstrained.y < 1) {
-    float4 zvalue = t1.Sample(s0, float2(fragconstrained.x, 1 - fragconstrained.y));
-    if (abs(fragcoord.z - zvalue.x) < 0.0002f) { // TODO this is 100% certified SCUFFED
+    float4 totalz = 0;
+    for (int x = -1; x < 2; x++) {
+      for (int y = -1; y < 2; y++) {
+        float xcoord = fragconstrained.x + 0.001f * x;
+        float ycoord = 1 - (fragconstrained.y + 0.001f * y);
+        totalz += t1.Sample(s0, float2(xcoord, ycoord));
+      }
+    }
+
+    float4 averagez = totalz / 9.0f;
+
+    if (abs(fragcoord.z - averagez.x) < 0.00015f) { // TODO this is 100% certified SCUFFED
       lit = 1;
     } else {
-      lit = 0.25;
+      lit = 0.2;
     }
   }
 
