@@ -1,5 +1,5 @@
-void MIdentity(MATRIX *m) {
-  for (U32 i = 0; i < 16; i++) {
+void MIdentity(mat4 *m) {
+  for (u32 i = 0; i < 16; i++) {
     (*m)[i] = 0;
   }
 
@@ -9,7 +9,7 @@ void MIdentity(MATRIX *m) {
   (*m)[15] = 1.0f;
 }
 
-void MPerspective(MATRIX *m, float aspectratio, float fov, float nearz, float farz) {
+void mat4_perspective(mat4 *m, float aspectratio, float fov, float nearz, float farz) {
   MIdentity(m);
 
   float s = 1.0f / (tanf(fov / 2.0f));
@@ -22,7 +22,7 @@ void MPerspective(MATRIX *m, float aspectratio, float fov, float nearz, float fa
   (*m)[15] = 0;
 }
 
-void MOrthographic(MATRIX *m, float left, float right, float top, float bottom, float nearz, float farz) {
+void mat4_orthographic(mat4 *m, float left, float right, float top, float bottom, float nearz, float farz) {
   MIdentity(m);
 
   (*m)[0] = 2 / (right - left);
@@ -33,7 +33,7 @@ void MOrthographic(MATRIX *m, float left, float right, float top, float bottom, 
   (*m)[11] = -(nearz) / (farz - nearz);
 }
 
-void MTransform(MATRIX *m, TRANSFORM transform) {
+void mat4_transform(mat4 *m, transformation transform) {
   MIdentity(m);
 
   // Apply transformation
@@ -71,9 +71,9 @@ void MTransform(MATRIX *m, TRANSFORM transform) {
   (*m)[10] *= transform.scale[2];
 }
 
-void MInverseTransform(MATRIX *m, TRANSFORM transform) {
-  MATRIX sourcematrix;
-  MTransform(&sourcematrix, transform);
+void mat4_inverse_transform(mat4 *m, transformation transform) {
+  mat4 sourcematrix;
+  mat4_transform(&sourcematrix, transform);
 
   float Result[4][4];
   float tmp[12]; /* temp array for pairs */
@@ -162,7 +162,7 @@ void MInverseTransform(MATRIX *m, TRANSFORM transform) {
   }
 }
 
-void MCopy(MATRIX *m, MATRIX source) {
+void MCopy(mat4 *m, mat4 source) {
   (*m)[0] = source[0];
   (*m)[1] = source[1];
   (*m)[2] = source[2];
@@ -181,8 +181,8 @@ void MCopy(MATRIX *m, MATRIX source) {
   (*m)[15] = source[15];
 }
 
-void MTranspose(MATRIX *m) {
-  MATRIX tmp;
+void MTranspose(mat4 *m) {
+  mat4 tmp;
   MCopy(&tmp, *m);
 
   (*m)[1] = tmp[4];

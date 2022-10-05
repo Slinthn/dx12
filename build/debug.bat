@@ -15,7 +15,7 @@ dxc /nologo /Zi /Qembed_debug /Fo default_pixel.cso /T ps_6_2 /E PixelEntry ..\s
 dxc /nologo /Zi /Qembed_debug /Fo shader_vertex.cso /T vs_6_2 /E VertexEntry ..\src\hlsl\shader.hlsl
 dxc /nologo /Zi /Qembed_debug /Fo shader_pixel.cso /T ps_6_2 /E PixelEntry ..\src\hlsl\shader.hlsl
 
-rc /nologo /fo resources.res ..\src\resources.rc
+rc /nologo /fo resources.res ..\src\resource\resources.rc
 
 cl /nologo /Z7 /Wall /wd5045 /D_debug ..\src\app.c /link KERNEL32.LIB USER32.LIB DXGUID.LIB D3D12.LIB DXGI.LIB resources.res
 

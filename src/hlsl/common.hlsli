@@ -4,7 +4,7 @@ struct VERTEXDATA {
   float4 unused0[3];
 };
 
-cbuffer CB0 : register(b0) {
+cbuffer constant_buffer0: register(b0) {
   VERTEXDATA vertexdata[100];
 };
 
@@ -12,7 +12,7 @@ cbuffer CB1 : register(b1) {
   int offset;
 };
 
-cbuffer CB2 : register(b2) {
+cbuffer constant_buffer2 : register(b2) {
   float4x4 cameraperspective;
   float4x4 camera;
   float4x4 suncamera;

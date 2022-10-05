@@ -1,5 +1,5 @@
-DX12DESCRIPTORHEAP DXCreateDescriptorHeap(DX12STATE *state, U32 count, D3D12_DESCRIPTOR_HEAP_TYPE type, D3D12_DESCRIPTOR_HEAP_FLAGS flags) {
-  DX12DESCRIPTORHEAP ret = {0};
+dx12_descriptor_heap dx12_create_descriptor_heap(dx12_state *state, u32 count, D3D12_DESCRIPTOR_HEAP_TYPE type, D3D12_DESCRIPTOR_HEAP_FLAGS flags) {
+  dx12_descriptor_heap ret = {0};
 
   D3D12_DESCRIPTOR_HEAP_DESC descriptorheapdesc = {0};
   descriptorheapdesc.Type = type;
@@ -14,15 +14,15 @@ DX12DESCRIPTORHEAP DXCreateDescriptorHeap(DX12STATE *state, U32 count, D3D12_DES
   return ret;
 }
 
-DX12DESCRIPTORHANDLE DXGetNextUnusedHandle(DX12STATE *state, DX12DESCRIPTORHEAP *heap) {
-  DX12DESCRIPTORHANDLE ret = {0};
+dx12_descriptor_handle dx12_get_next_unused_handle(dx12_state *state, dx12_descriptor_heap *heap) {
+  dx12_descriptor_handle ret = {0};
 
-  U32 increment = state->device->lpVtbl->GetDescriptorHandleIncrementSize(state->device, heap->type);
+  u32 increment = state->device->lpVtbl->GetDescriptorHandleIncrementSize(state->device, heap->type);
 
-  ret.cpuhandle = DXGetCPUDescriptorHandleForHeapStart(heap->heap);
+  ret.cpuhandle = dx12_get_cpu_descriptor_handle_for_heap_start(heap->heap);
   ret.cpuhandle.ptr += increment * heap->usedcount;
 
-  ret.gpuhandle = DXGetGPUDescriptorHandleForHeapStart(heap->heap);
+  ret.gpuhandle = dx12_get_gpu_descriptor_handle_for_heap_start(heap->heap);
   ret.gpuhandle.ptr += increment * heap->usedcount;
 
   heap->usedcount++;

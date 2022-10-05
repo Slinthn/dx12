@@ -1,27 +1,27 @@
-void VECCopy3f(VECTOR3F *vec, VECTOR3F source) {
+void vec3_copy(vec3 *vec, vec3 source) {
   (*vec)[0] = source[0];
   (*vec)[1] = source[1];
   (*vec)[2] = source[2];
 }
 
-void VECAdd3f(VECTOR3F *vec, VECTOR3F source) {
+void vec3_add(vec3 *vec, vec3 source) {
   (*vec)[0] += source[0];
   (*vec)[1] += source[1];
   (*vec)[2] += source[2];
 }
 
-void VECMul3f(VECTOR3F *vec, VECTOR3F source) {
+void vec3_mul(vec3 *vec, vec3 source) {
   (*vec)[0] *= source[0];
   (*vec)[1] *= source[1];
   (*vec)[2] *= source[2];
 }
 
-float VECMagnitude3f(VECTOR3F vec) {
+float vec3_magnitude(vec3 vec) {
   return sqrtf((vec[0] * vec[0]) + (vec[1] * vec[1]) + (vec[2] * vec[2]));
 }
 
-void VECNormalise3f(VECTOR3F *vec) {
-  float magnitude = VECMagnitude3f(*vec);
+void vec3_normalise(vec3 *vec) {
+  float magnitude = vec3_magnitude(*vec);
 
   if (magnitude != 0) {
     (*vec)[0] /= magnitude;
@@ -30,7 +30,7 @@ void VECNormalise3f(VECTOR3F *vec) {
   }
 }
 
-void VECIdentity3f(VECTOR3F *vec) {
+void vec3_identity(vec3 *vec) {
   (*vec)[0] = 0;
   (*vec)[1] = 0;
   (*vec)[2] = 0;

@@ -1,4 +1,4 @@
-#include "resources.h"
+#include "../include/resources.h"
 
 RESOURCE_DEFAULT_VERTEX RESOURCE_TYPE_HLSL "../bin/default_vertex.cso"
 RESOURCE_DEFAULT_PIXEL RESOURCE_TYPE_HLSL "../bin/default_pixel.cso"
