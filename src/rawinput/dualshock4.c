@@ -1,4 +1,7 @@
-void rawinput_parse_dualshock4_data(user_controls *control, rawinput_dualshock4 *data) {
+void rawinput_parse_dualshock4_data(
+  struct user_controls *control,
+  struct rawinput_dualshock4 *data)
+{
  control->actions = 0;
   if (data->buttons & (1 << 5)) {
     control->actions |= ACTION_JUMP;
@@ -12,8 +15,8 @@ void rawinput_parse_dualshock4_data(user_controls *control, rawinput_dualshock4 
     control->actions |= ACTION_ASCEND;
   }
 
-  control->move[0] = (data->lx - 127.5f) / 127.5f;
-  control->move[1] = (data->ly - 127.5f) / 127.5f;
-  control->look[0] = (data->rx - 127.5f) / 127.5f;
-  control->look[1] = (data->ry - 127.5f) / 127.5f;
+  control->move.x = (data->lx - 127.5f) / 127.5f;
+  control->move.y = (data->ly - 127.5f) / 127.5f;
+  control->look.x = (data->rx - 127.5f) / 127.5f;
+  control->look.y = (data->ry - 127.5f) / 127.5f;
 }

@@ -1,16 +1,16 @@
-void render_world(win64_state *winstate, BOOL coloured) {
-  dx12_state *dxstate = &winstate->dxstate;
+void render_world(struct win64_state *winstate, BOOL coloured) {
+  struct dx12_state *dxstate = &winstate->dxstate;
 
-  world *world = &winstate->world1;
+  struct world *world = &winstate->world1;
 
   // Render all world objects
-  for (u32 i = 0; i < SIZE_OF_ARRAY(world->objects); i++) {
-    world_object *obj = &world->objects[i];
+  for (uint32_t i = 0; i < SIZE_OF_ARRAY(world->objects); i++) {
+    struct world_object *obj = &world->objects[i];
     if (!obj->modelindex) {
       continue;
     }
 
-    dx12_model *model = &world->models[obj->modelindex];
+    struct dx12_model *model = &world->models[obj->modelindex];
 
     D3D12_VERTEX_BUFFER_VIEW views[3] = {
       model->vertexbuffer.view,
@@ -30,8 +30,8 @@ void render_world(win64_state *winstate, BOOL coloured) {
   }
 }
 
-void render_shadows(win64_state *winstate) {
-  dx12_state *dxstate = &winstate->dxstate;
+void render_shadows(struct win64_state *winstate) {
+  struct dx12_state *dxstate = &winstate->dxstate;
 
   // Bind shader
   D3D12_CPU_DESCRIPTOR_HANDLE shaderdescriptor = dx12_get_cpu_descriptor_handle_for_heap_start(winstate->shadow.descriptorheap);
@@ -67,8 +67,8 @@ void render_shadows(win64_state *winstate) {
   dxstate->list->lpVtbl->SetDescriptorHeaps(dxstate->list, SIZE_OF_ARRAY(heaps), heaps);
 
   // Bind depth buffer for reading
-  dxstate->list->lpVtbl->SetGraphicsRootDescriptorTable(dxstate->list, 0, winstate->heap0.constantbuffer0handle.gpuhandle);
-  dxstate->list->lpVtbl->SetGraphicsRootDescriptorTable(dxstate->list, 2, winstate->heap0.constantbuffer2handle.gpuhandle);
+  dxstate->list->lpVtbl->SetGraphicsRootDescriptorTable(dxstate->list, 0, winstate->constantbuffer0handle.gpuhandle);
+  dxstate->list->lpVtbl->SetGraphicsRootDescriptorTable(dxstate->list, 2, winstate->constantbuffer2handle.gpuhandle);
 
   // Render scene objects for the shader
   render_world(winstate, FALSE);
@@ -81,12 +81,12 @@ void render_shadows(win64_state *winstate) {
   dxstate->list->lpVtbl->ResourceBarrier(dxstate->list, 1, &rb);
 }
 
-void render_colour(win64_state *winstate, u32 frame) {
-  dx12_state *dxstate = &winstate->dxstate;
+void render_colour(struct win64_state *winstate, uint32_t frame) {
+  struct dx12_state *dxstate = &winstate->dxstate;
 
   // Set render target and depth target
   D3D12_CPU_DESCRIPTOR_HANDLE rtvdescriptor = dx12_get_cpu_descriptor_handle_for_heap_start(dxstate->rendertargetviewdescriptorheap);
-  rtvdescriptor.ptr += (u64)frame * dxstate->device->lpVtbl->GetDescriptorHandleIncrementSize(dxstate->device, D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
+  rtvdescriptor.ptr += (uint64_t)frame * dxstate->device->lpVtbl->GetDescriptorHandleIncrementSize(dxstate->device, D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
   D3D12_CPU_DESCRIPTOR_HANDLE dsvdescriptor = dx12_get_cpu_descriptor_handle_for_heap_start(dxstate->depthstencilviewdescriptorheap);
   dxstate->list->lpVtbl->OMSetRenderTargets(dxstate->list, 1, &rtvdescriptor, 0, &dsvdescriptor);
 
@@ -114,27 +114,27 @@ void render_colour(win64_state *winstate, u32 frame) {
   dxstate->list->lpVtbl->SetDescriptorHeaps(dxstate->list, SIZE_OF_ARRAY(heaps), heaps);
 
   // Bind depth buffer for reading (as well as usual buffers)
-  dxstate->list->lpVtbl->SetGraphicsRootDescriptorTable(dxstate->list, 0, winstate->heap0.constantbuffer0handle.gpuhandle);
-  dxstate->list->lpVtbl->SetGraphicsRootDescriptorTable(dxstate->list, 4, winstate->heap0.constantbuffer2handle.gpuhandle);
+  dxstate->list->lpVtbl->SetGraphicsRootDescriptorTable(dxstate->list, 0, winstate->constantbuffer0handle.gpuhandle);
+  dxstate->list->lpVtbl->SetGraphicsRootDescriptorTable(dxstate->list, 4, winstate->constantbuffer2handle.gpuhandle);
   dxstate->list->lpVtbl->SetGraphicsRootDescriptorTable(dxstate->list, 3, winstate->shadow.texturehandle.gpuhandle);
 
   // Render scene objects for the shader
   render_world(winstate, TRUE);
 }
 
-void render_setup_constant_buffers(win64_state *winstate) {
-  dx12_state *dxstate = &winstate->dxstate;
+void render_setup_constant_buffers(struct win64_state *winstate) {
+  struct dx12_state *dxstate = &winstate->dxstate;
 
   // Setup constant_buffer2  
   {
-    constant_buffer2 cb2 = {0};
+    struct constant_buffer2 cb2 = {0};
 
     // TODO
-    vec3_copy(&winstate->player.transform.scale, (vec3){1, 1, 1});
-    vec3_copy(&winstate->sun.scale, (vec3){1, 1, 1});
-    vec3_copy(&winstate->sun.position, (vec3){0, 50, 0});
-    vec3_copy(&winstate->sun.rotation, (vec3){DEGREESTORADIANS(90), 0, 0});
-    //vec3_copy(&winstate->player.transform.position, (vec3){0, 2, 0});
+    vec3_copy(&winstate->player.transform.scale, (struct vector3){1, 1, 1});
+    vec3_copy(&winstate->sun.scale, (struct vector3){1, 1, 1});
+    vec3_copy(&winstate->sun.position, (struct vector3){0, 50, 0});
+    vec3_copy(&winstate->sun.rotation, (struct vector3){DEGREESTORADIANS(90), 0, 0});
+    //vec3_copy(&winstate->player.transform.position, (struct vector3){0, 2, 0});
 
     mat4_perspective(&cb2.cameraperspective, WINDOW_HEIGHT / (float)WINDOW_WIDTH, DEGREESTORADIANS(100.0f), 0.1f, 100.0f);
     mat4_inverse_transform(&cb2.camera, winstate->player.transform);
@@ -142,42 +142,42 @@ void render_setup_constant_buffers(win64_state *winstate) {
     mat4_inverse_transform(&cb2.suncamera, winstate->sun);
 
 
-    dx12_update_buffer(dxstate, winstate->heap0.constantbuffer2, winstate->heap0.constantbuffer2upload, &cb2);
+    dx12_update_buffer(dxstate, winstate->constantbuffer2, winstate->constantbuffer2upload, &cb2);
   }
 
   // Setup constant_buffer0
   {
-    world *world = &winstate->world1;
+    struct world *world = &winstate->world1;
 
-    constant_buffer0 cb0 = {0};
+    struct constant_buffer0 cb0 = {0};
 
-    for (u32 i = 0; i < SIZE_OF_ARRAY(world->objects); i++) {
-      world_object *obj = &world->objects[i];
+    for (uint32_t i = 0; i < SIZE_OF_ARRAY(world->objects); i++) {
+      struct world_object *obj = &world->objects[i];
       // Check if object is valid and should be rendered
       if (!obj->modelindex) {
         continue;
       }
 
-      dx12_model *model = &world->models[obj->modelindex];
+      struct dx12_model *model = &world->models[obj->modelindex];
 
       // Update constant buffer
       mat4_transform(&cb0.data[i].transform, obj->transform);
       vec4_copy(&cb0.data[i].colour, model->colour);
     }
 
-    dx12_update_buffer(dxstate, winstate->heap0.constantbuffer0, winstate->heap0.constantbuffer0upload, &cb0);
+    dx12_update_buffer(dxstate, winstate->constantbuffer0, winstate->constantbuffer0upload, &cb0);
   }
 }
 
-void game_render(win64_state *winstate) {
-  dx12_state *dxstate = &winstate->dxstate;
+void game_render(struct win64_state *winstate) {
+  struct dx12_state *dxstate = &winstate->dxstate;
 
   // Reset command list and allocator
   dxstate->allocator->lpVtbl->Reset(dxstate->allocator);
   dxstate->list->lpVtbl->Reset(dxstate->list, dxstate->allocator, 0);
   
   // Get current frame
-  u32 frame = dxstate->swapchain->lpVtbl->GetCurrentBackBufferIndex(dxstate->swapchain);
+  uint32_t frame = dxstate->swapchain->lpVtbl->GetCurrentBackBufferIndex(dxstate->swapchain);
 
   // Transition render target view to a drawing state
   D3D12_RESOURCE_BARRIER rb = {0};

@@ -5,6 +5,7 @@
 #include <dxgi1_4.h>
 #include <math.h>
 #include <hidusage.h>
+
 #define STB_IMAGE_IMPLEMENTATION
 #include "include/stb_image.h"
 #define CGLTF_IMPLEMENTATION
@@ -15,29 +16,30 @@
 
 #include "math/math.c"
 #include "rawinput/rawinput.c"
-#include "dx12/dx12.c"
+#include "renderer/dx12.c"
 #include "resource.c"
 #include "game.c"
 
-LRESULT win64_message_proc(HWND window, UINT msg, WPARAM wparam, LPARAM lparam) {
+LRESULT win64_message_proc(HWND window, UINT msg, WPARAM wparam, LPARAM lparam)
+{
   // Get windows state
-  win64_state *state = (win64_state *)GetWindowLongPtrA(window, GWLP_USERDATA);
+  struct win64_state *state =
+    (struct win64_state *)GetWindowLongPtrA(window, GWLP_USERDATA);
 
   switch (msg) {
   case WM_CREATE: {
     // Set the windows state variable pointer as userdata in the window
-    SetWindowLongPtrA(window, GWLP_USERDATA, (LONG_PTR)(((CREATESTRUCT *)lparam)->lpCreateParams));
+    SetWindowLongPtrA(window, GWLP_USERDATA,
+      (LONG_PTR)(((CREATESTRUCT *)lparam)->lpCreateParams));
     return 1;
   } break;
 
   case WM_CLOSE:
   case WM_DESTROY: {
-    // Exit the program if something happens to the window
     ExitProcess(0);
   } break;
 
   case WM_INPUT: {
-    // Parse any raw input
     rawinput_parse(&state->controls, (HRAWINPUT)lparam);
     return 1;
   } break;
@@ -46,63 +48,58 @@ LRESULT win64_message_proc(HWND window, UINT msg, WPARAM wparam, LPARAM lparam) 
   return DefWindowProcA(window, msg, wparam, lparam);
 }
 
-int APIENTRY WinMain(HINSTANCE instance, HINSTANCE prevInstance, LPSTR cmd, int show) {
+int APIENTRY WinMain(HINSTANCE instance,
+  HINSTANCE prevInstance, LPSTR cmd, int show)
+{
   // Suppress unused parameter warnings
   (void)prevInstance;
   (void)cmd;
   (void)show;
 
-  // Create a windows state variable
-  win64_state winstate = {0};
-
   // Register window class
   WNDCLASSEXA wc = {0};
-  wc.cbSize = sizeof(WNDCLASSEXA);
+  wc.cbSize = sizeof(wc);
   wc.hInstance = instance;
   wc.lpfnWndProc = win64_message_proc;
   wc.lpszClassName = "24/06/2022Slinapp";
 
   RegisterClassExA(&wc);
 
-  // Create window
-  HWND window = CreateWindowExA(0, wc.lpszClassName, "App", WS_OVERLAPPEDWINDOW | WS_VISIBLE, CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT, 0, 0, instance, &winstate);
+  struct win64_state winstate = {0};
 
-  // Initialise raw input
+  HWND window = CreateWindowExA(0, wc.lpszClassName, "App",
+    WS_OVERLAPPEDWINDOW | WS_VISIBLE, CW_USEDEFAULT, CW_USEDEFAULT,
+    CW_USEDEFAULT, CW_USEDEFAULT, 0, 0, instance, &winstate);
+
   rawinput_init(window);
 
-  // Initialise directx12
   winstate.dxstate = dx12_init(window, 1);
   
-  // Invoke game initialiser function
   game_init(&winstate);
   
-  // Initialise FPS manager
-  u64 counter;
-  u64 frequency;
+  uint64_t counter;
+  uint64_t frequency;
   QueryPerformanceCounter((LARGE_INTEGER *)&counter);
   QueryPerformanceFrequency((LARGE_INTEGER *)&frequency);
-  
+
   while (1) {
-    // Parse window messages
     MSG msg;
     while (PeekMessageA(&msg, window, 0, 0, PM_REMOVE)) {
       TranslateMessage(&msg);
       DispatchMessageA(&msg);
     }
 
-    // Update game
     game_update(&winstate);
 
     // Sleep if time is remaining
-    s32 tosleep;
+    int32_t tosleep;
     do {
-      u64 newcounter;
+      uint64_t newcounter;
       QueryPerformanceCounter((LARGE_INTEGER *)&newcounter);
-      float delta = ((float)(newcounter - counter) / (float)frequency) * 1000.0f;
-      tosleep = (s32)floorf((1000.0f / 60.0f) - delta);
+      float delta_seconds = ((newcounter - counter) / (float)frequency);
+      tosleep = (int32_t)floorf((1 / 60.0f - delta_seconds) * 1000.0f);
     } while (tosleep > 0);
 
-    // Update counter
     QueryPerformanceCounter((LARGE_INTEGER *)&counter);
   }
 }

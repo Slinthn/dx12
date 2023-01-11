@@ -1,3 +1,3 @@
-void world_physics(win64_state *winstate) {
-  (u64)winstate;
+void world_physics(struct win64_state *winstate) {
+  (uint64_t)winstate;
 }

@@ -1,42 +1,42 @@
-void vec4_copy(vec4 *vec, vec4 source) {
-  (*vec)[0] = source[0];
-  (*vec)[1] = source[1];
-  (*vec)[2] = source[2];
-  (*vec)[3] = source[3];
+void vec4_copy(struct vector4 *vec, struct vector4 source) {
+  (*vec).x = source.x;
+  (*vec).y = source.y;
+  (*vec).z = source.z;
+  (*vec).w = source.w;
 }
 
-void VECAdd4f(vec4 *vec, vec4 source) {
-  (*vec)[0] += source[0];
-  (*vec)[1] += source[1];
-  (*vec)[2] += source[2];
-  (*vec)[3] += source[3];
+void VECAdd4f(struct vector4 *vec, struct vector4 source) {
+  (*vec).x += source.x;
+  (*vec).y += source.y;
+  (*vec).z += source.z;
+  (*vec).w += source.w;
 }
 
-void VECMul4f(vec4 *vec, vec4 source) {
-  (*vec)[0] *= source[0];
-  (*vec)[1] *= source[1];
-  (*vec)[2] *= source[2];
-  (*vec)[3] *= source[3];
+void VECMul4f(struct vector4 *vec, struct vector4 source) {
+  (*vec).x *= source.x;
+  (*vec).y *= source.y;
+  (*vec).z *= source.z;
+  (*vec).w *= source.w;
 }
 
-float VECMagnitude4f(vec4 vec) {
-  return sqrtf((vec[0] * vec[0]) + (vec[1] * vec[1]) + (vec[2] * vec[2]) + (vec[3] * vec[3]));
+float vec4_magnitude(struct vector4 vec) {
+  return sqrtf((vec.x * vec.x) + (vec.y * vec.y) + (vec.z * vec.z) + (vec.w * vec.w));
 }
 
-void VECNormalise4f(vec4 *vec) {
-  float magnitude = VECMagnitude4f(*vec);
+void vec4_normalise(struct vector4 *vec) {
+  float magnitude = vec4_magnitude(*vec);
 
   if (magnitude != 0) {
-    (*vec)[0] /= magnitude;
-    (*vec)[1] /= magnitude;
-    (*vec)[2] /= magnitude;
-    (*vec)[3] /= magnitude;
+    (*vec).x /= magnitude;
+    (*vec).y /= magnitude;
+    (*vec).z /= magnitude;
+    (*vec).w /= magnitude;
   }
 }
 
-void VECIdentity4f(vec4 *vec) {
-  (*vec)[0] = 0;
-  (*vec)[1] = 0;
-  (*vec)[2] = 0;
-  (*vec)[3] = 0;
+void VECIdentity4f(struct vector4 *vec) {
+  (*vec).x = 0;
+  (*vec).y = 0;
+  (*vec).z = 0;
+  (*vec).w = 0;
 }

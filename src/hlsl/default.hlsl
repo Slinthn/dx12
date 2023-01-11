@@ -56,5 +56,6 @@ float4 PixelEntry(VSOUT input) : SV_TARGET {
 
   float grayscale = 0.2989 * colour.x + 0.587 * colour.y + 0.114 * colour.z;
 
-  return float4(grayscale, grayscale, grayscale, 1);
+  //return float4(grayscale, grayscale, grayscale, 1);
+  return colour;
 }

@@ -1,5 +1,6 @@
-void MIdentity(mat4 *m) {
-  for (u32 i = 0; i < 16; i++) {
+void mat4_identity(mat4 *m)
+{
+  for (uint32_t i = 0; i < 16; i++) {
     (*m)[i] = 0;
   }
 
@@ -9,8 +10,10 @@ void MIdentity(mat4 *m) {
   (*m)[15] = 1.0f;
 }
 
-void mat4_perspective(mat4 *m, float aspectratio, float fov, float nearz, float farz) {
-  MIdentity(m);
+void mat4_perspective(mat4 *m, float aspectratio, float fov,
+  float nearz, float farz)
+{
+  mat4_identity(m);
 
   float s = 1.0f / (tanf(fov / 2.0f));
 
@@ -22,8 +25,10 @@ void mat4_perspective(mat4 *m, float aspectratio, float fov, float nearz, float 
   (*m)[15] = 0;
 }
 
-void mat4_orthographic(mat4 *m, float left, float right, float top, float bottom, float nearz, float farz) {
-  MIdentity(m);
+void mat4_orthographic(mat4 *m, float left, float right, float top,
+  float bottom, float nearz, float farz)
+{
+  mat4_identity(m);
 
   (*m)[0] = 2 / (right - left);
   (*m)[3] = -(right + left) / (right - left);
@@ -33,21 +38,22 @@ void mat4_orthographic(mat4 *m, float left, float right, float top, float bottom
   (*m)[11] = -(nearz) / (farz - nearz);
 }
 
-void mat4_transform(mat4 *m, transformation transform) {
-  MIdentity(m);
+void mat4_transform(mat4 *m, struct transformation transform)
+{
+  mat4_identity(m);
 
   // Apply transformation
-  (*m)[3] = transform.position[0];
-  (*m)[7] = transform.position[1];
-  (*m)[11] = transform.position[2];
+  (*m)[3] = transform.position.x;
+  (*m)[7] = transform.position.y;
+  (*m)[11] = transform.position.z;
 
   // Apply rotation
-  float srx = sinf(transform.rotation[0]);
-  float crx = cosf(transform.rotation[0]);
-  float sry = sinf(transform.rotation[1]);
-  float cry = cosf(transform.rotation[1]);
-  float srz = sinf(transform.rotation[2]);
-  float crz = cosf(transform.rotation[2]);
+  float srx = sinf(transform.rotation.x);
+  float crx = cosf(transform.rotation.x);
+  float sry = sinf(transform.rotation.y);
+  float cry = cosf(transform.rotation.y);
+  float srz = sinf(transform.rotation.z);
+  float crz = cosf(transform.rotation.z);
 
   (*m)[0] = (crz * cry);
   (*m)[1] = (crz * sry * srx) - (srz * crx);
@@ -60,18 +66,18 @@ void mat4_transform(mat4 *m, transformation transform) {
   (*m)[10] = cry * crx;
 
   // Apply scaling
-  (*m)[0] *= transform.scale[0];
-  (*m)[1] *= transform.scale[1];
-  (*m)[2] *= transform.scale[2];
-  (*m)[4] *= transform.scale[0];
-  (*m)[5] *= transform.scale[1];
-  (*m)[6] *= transform.scale[2];
-  (*m)[8] *= transform.scale[0];
-  (*m)[9] *= transform.scale[1];
-  (*m)[10] *= transform.scale[2];
+  (*m)[0] *= transform.scale.x;
+  (*m)[1] *= transform.scale.y;
+  (*m)[2] *= transform.scale.z;
+  (*m)[4] *= transform.scale.x;
+  (*m)[5] *= transform.scale.y;
+  (*m)[6] *= transform.scale.z;
+  (*m)[8] *= transform.scale.x;
+  (*m)[9] *= transform.scale.y;
+  (*m)[10] *= transform.scale.z;
 }
 
-void mat4_inverse_transform(mat4 *m, transformation transform) {
+void mat4_inverse_transform(mat4 *m, struct transformation transform) {
   mat4 sourcematrix;
   mat4_transform(&sourcematrix, transform);
 
@@ -162,7 +168,7 @@ void mat4_inverse_transform(mat4 *m, transformation transform) {
   }
 }
 
-void MCopy(mat4 *m, mat4 source) {
+void mat4_copy(mat4 *m, mat4 source) {
   (*m)[0] = source[0];
   (*m)[1] = source[1];
   (*m)[2] = source[2];
@@ -181,9 +187,10 @@ void MCopy(mat4 *m, mat4 source) {
   (*m)[15] = source[15];
 }
 
-void MTranspose(mat4 *m) {
+void mat4_transpose(mat4 *m) {
+  // TODO i can't even remember if this is correct...
   mat4 tmp;
-  MCopy(&tmp, *m);
+  mat4_copy(&tmp, *m);
 
   (*m)[1] = tmp[4];
   (*m)[4] = tmp[1];

@@ -3,22 +3,22 @@
 #define ACTION_ASCEND (0x4)
 
 #pragma pack(push, 1)
-typedef struct t_rawinput_dualshock4 {
-  u8 reportid;
-  u8 lx;
-  u8 ly;
-  u8 rx;
-  u8 ry;
-  u16 buttons;
-  u8 counter;
-  u8 l2;
-  u8 r2;
-} rawinput_dualshock4;
+struct rawinput_dualshock4 {
+  uint8_t reportid;
+  uint8_t lx;
+  uint8_t ly;
+  uint8_t rx;
+  uint8_t ry;
+  uint16_t buttons;
+  uint8_t counter;
+  uint8_t l2;
+  uint8_t r2;
+};
 #pragma pack(pop)
 
-typedef struct t_user_controls {
-  vec2 move;
-  vec2 look;
-  u8 actions;
-  u8 unused[3];
-} user_controls;
+struct user_controls {
+  struct vector2 move;
+  struct vector2 look;
+  uint8_t actions;
+  uint8_t unused[3];
+};

@@ -1,32 +1,32 @@
-void vec2_copy(vec2 *vec, vec2 source) {
-  (*vec)[0] = source[0];
-  (*vec)[1] = source[1];
+void vec2_copy(struct vector2 *vec, struct vector2 source) {
+  (*vec).x = source.x;
+  (*vec).y = source.y;
 }
 
-void VECAdd2f(vec2 *vec, vec2 source) {
-  (*vec)[0] += source[0];
-  (*vec)[1] += source[1];
+void vec2_add(struct vector2 *vec, struct vector2 source) {
+  (*vec).x += source.x;
+  (*vec).y += source.y;
 }
 
-void vec2_mul(vec2 *vec, vec2 source) {
-  (*vec)[0] *= source[0];
-  (*vec)[1] *= source[1];
+void vec2_mul(struct vector2 *vec, struct vector2 source) {
+  (*vec).x *= source.x;
+  (*vec).y *= source.y;
 }
 
-float VECMagnitude2f(vec2 vec) {
-  return sqrtf((vec[0] * vec[0]) + (vec[1] * vec[1]));
+float vec2_magnitude(struct vector2 vec) {
+  return sqrtf((vec.x * vec.x) + (vec.y * vec.y));
 }
 
-void vec2_normalise(vec2 *vec) {
-  float magnitude = VECMagnitude2f(*vec);
+void vec2_normalise(struct vector2 *vec) {
+  float magnitude = vec2_magnitude(*vec);
 
   if (magnitude != 0) {
-    (*vec)[0] /= magnitude;
-    (*vec)[1] /= magnitude;
+    (*vec).x /= magnitude;
+    (*vec).y /= magnitude;
   }
 }
 
-void vec2_identity(vec2 *vec) {
-  (*vec)[0] = 0;
-  (*vec)[1] = 0;
+void vec2_identity(struct vector2 *vec) {
+  (*vec).x = 0;
+  (*vec).y = 0;
 }

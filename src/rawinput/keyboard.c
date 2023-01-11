@@ -1,22 +1,25 @@
-void rawinput_parse_keyboard_data(user_controls *control, RAWINPUT *data) {
-  u8 down = !(data->data.keyboard.Flags & RI_KEY_BREAK);
-  u16 key = data->data.keyboard.VKey;
+void rawinput_parse_keyboard_data(
+  struct user_controls *control,
+  RAWINPUT *data)
+{
+  uint8_t down = !(data->data.keyboard.Flags & RI_KEY_BREAK);
+  uint16_t key = data->data.keyboard.VKey;
 
   switch (key) {
   case 'W': {
-    control->move[1] = (float)-down;
+    control->move.y = (float)-down;
   } break;
 
   case 'S': {
-    control->move[1] = down;
+    control->move.y = down;
   } break;
 
   case 'D': {
-    control->move[0] = down;
+    control->move.x = down;
   } break;
 
   case 'A': {
-    control->move[0] = (float)-down;
+    control->move.x = (float)-down;
   } break;
   
   case VK_SHIFT: {
